@@ -1,3 +1,5 @@
+mod square_array;
+
 #[cfg(test)]
 mod tests {
     #[test]
