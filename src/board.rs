@@ -16,13 +16,13 @@ pub struct Board {
 }
 
 #[derive(Debug, PartialEq)]
-struct CellOccupied {
+pub struct CellOccupied {
     row: u8,
     column: u8,
 }
 
 impl Board {
-    fn new(size: u8) -> Board {
+    pub fn new(size: u8) -> Board {
         Board {
             cells: SquareArray::new(size),
         }
