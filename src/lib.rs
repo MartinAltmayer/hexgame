@@ -1,3 +1,4 @@
+mod board;
 mod square_array;
 
 #[cfg(test)]

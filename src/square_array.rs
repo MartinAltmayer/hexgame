@@ -1,5 +1,5 @@
 pub struct SquareArray<T: Default + Copy> {
-    size: u8,
+    pub size: u8,
     items: Vec<T>,
 }
 
