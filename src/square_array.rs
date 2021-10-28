@@ -13,22 +13,19 @@ impl<T: Default + Copy> SquareArray<T> {
     }
 
     pub fn index_from_coord(&self, row: u8, column: u8) -> u16 {
-        if cfg!(debug_assertions) {
-            if row >= self.size {
-                panic!(
-                    "Row {} out of bounds. Must be at most {}",
-                    row,
-                    self.size - 1
-                );
-            }
-            if column >= self.size {
-                panic!(
-                    "Column {} out of bounds. Must be at most {}",
-                    column,
-                    self.size - 1
-                );
-            }
-        }
+        debug_assert!(
+            row < self.size,
+            "Row {} out of bounds. Must be at most {}",
+            row,
+            self.size - 1
+        );
+        debug_assert!(
+            column < self.size,
+            "Column {} out of bounds. Must be at most {}",
+            column,
+            self.size - 1
+        );
+
         u16::from(row) * u16::from(self.size) + u16::from(column)
     }
 
