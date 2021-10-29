@@ -40,11 +40,6 @@ impl<T: Default + Copy> SquareArray<T> {
     pub fn set_index(&mut self, index: u16, value: T) {
         self.items[usize::from(index)] = value;
     }
-
-    pub fn set_coord(&mut self, row: u8, column: u8, value: T) {
-        let index = self.index_from_coord(row, column);
-        self.items[usize::from(index)] = value;
-    }
 }
 
 #[cfg(test)]
@@ -65,14 +60,5 @@ mod tests {
         array.set_index(5, value);
         assert_eq!(array.at_index(5), value);
         assert_eq!(array.at_coord(1, 2), value);
-    }
-
-    #[test]
-    fn test_set_coord() {
-        let value = 123;
-        let mut array: SquareArray<u16> = SquareArray::new(3);
-        array.set_coord(2, 1, value);
-        assert_eq!(array.at_coord(2, 1), value);
-        assert_eq!(array.at_index(7), value);
     }
 }
