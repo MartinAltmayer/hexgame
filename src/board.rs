@@ -17,8 +17,8 @@ pub struct Board {
 
 #[derive(Debug, PartialEq)]
 pub struct CellOccupied {
-    row: u8,
-    column: u8,
+    pub row: u8,
+    pub column: u8,
 }
 
 impl Board {

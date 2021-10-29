@@ -31,6 +31,7 @@ fn char_for_color(color: Option<Color>) -> char {
 #[cfg(test)]
 mod test {
     use super::*;
+    use std::fmt::Write;
 
     #[test]
     fn test_write_board() {
