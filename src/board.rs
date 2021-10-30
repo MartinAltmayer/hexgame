@@ -1,4 +1,5 @@
 use crate::square_array::SquareArray;
+use std::fmt;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Color {
@@ -13,12 +14,6 @@ pub struct Cell {
 
 pub struct Board {
     cells: SquareArray<Cell>,
-}
-
-#[derive(Debug, PartialEq)]
-pub struct CellOccupied {
-    pub row: u8,
-    pub column: u8,
 }
 
 impl Board {
@@ -36,14 +31,34 @@ impl Board {
         self.cells.at_coord(row, column).color
     }
 
-    pub fn play(&mut self, row: u8, column: u8, color: Color) -> Result<(), CellOccupied> {
+    pub fn play(&mut self, row: u8, column: u8, color: Color) -> Result<(), InvalidMove> {
+        if row >= self.size() || column >= self.size() {
+            return Err(InvalidMove::OutOfBounds { row, column });
+        }
+
         let index = self.cells.index_from_coord(row, column);
         match self.cells.at_index(index).color {
-            None => {
-                self.cells.set_index(index, Cell { color: Some(color) });
-                Ok(())
+            None => Ok(self.cells.set_index(index, Cell { color: Some(color) })),
+            _ => Err(InvalidMove::CellOccupied { row, column }),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub enum InvalidMove {
+    OutOfBounds { row: u8, column: u8 },
+    CellOccupied { row: u8, column: u8 },
+}
+
+impl fmt::Display for InvalidMove {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        match self {
+            InvalidMove::OutOfBounds { row, column } => {
+                write!(f, "Coordinates ({}, {}) are out of bounds", row, column)
             }
-            _ => Err(CellOccupied { row, column }),
+            InvalidMove::CellOccupied { row, column } => {
+                write!(f, "Cell ({}, {}) is already occupied", row, column)
+            }
         }
     }
 }
@@ -68,10 +83,24 @@ mod tests {
     }
 
     #[test]
+    fn test_play_row_out_of_bounds() {
+        let mut board = Board::new(3);
+        let error = board.play(3, 2, Color::BLACK).unwrap_err();
+        assert_eq!(error, InvalidMove::OutOfBounds { row: 3, column: 2 });
+    }
+
+    #[test]
+    fn test_play_column_out_of_bounds() {
+        let mut board = Board::new(3);
+        let error = board.play(0, 3, Color::BLACK).unwrap_err();
+        assert_eq!(error, InvalidMove::OutOfBounds { row: 0, column: 3 });
+    }
+
+    #[test]
     fn test_play_on_occupied_cell() {
         let mut board = Board::new(3);
         let _ = board.play(1, 2, Color::BLACK);
         let error = board.play(1, 2, Color::BLACK).unwrap_err();
-        assert_eq!(error, CellOccupied { row: 1, column: 2 });
+        assert_eq!(error, InvalidMove::CellOccupied { row: 1, column: 2 });
     }
 }

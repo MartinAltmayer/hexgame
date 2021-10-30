@@ -1,4 +1,4 @@
-use crate::board::{Board, CellOccupied, Color};
+use crate::board::{Board, Color, InvalidMove};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Status {
@@ -21,7 +21,7 @@ impl Game {
         }
     }
 
-    pub fn play(&mut self, row: u8, column: u8) -> Result<(), CellOccupied> {
+    pub fn play(&mut self, row: u8, column: u8) -> Result<(), InvalidMove> {
         self.board.play(row, column, self.current_player)?;
 
         self.current_player = match self.current_player {

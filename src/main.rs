@@ -30,7 +30,7 @@ struct Coords {
 fn request_and_play_move(game: &mut Game) -> Result<(), io::Error> {
     let coords = request_coords(game)?;
     game.play(coords.row, coords.column)
-        .map_err(|_| invalid_input("Cell is already occupied"))
+        .map_err(|error| invalid_input(&error.to_string()))
 }
 
 fn request_coords(game: &Game) -> Result<Coords, io::Error> {
