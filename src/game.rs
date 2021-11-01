@@ -1,4 +1,4 @@
-use crate::board::{Board, Color, InvalidMove};
+use crate::board::{Board, Color, Coords, InvalidMove};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Status {
@@ -21,8 +21,8 @@ impl Game {
         }
     }
 
-    pub fn play(&mut self, row: u8, column: u8) -> Result<(), InvalidMove> {
-        self.board.play(row, column, self.current_player)?;
+    pub fn play(&mut self, coords: Coords) -> Result<(), InvalidMove> {
+        self.board.play(coords, self.current_player)?;
 
         self.current_player = match self.current_player {
             Color::BLACK => Color::WHITE,
@@ -39,10 +39,12 @@ mod test {
     #[test]
     fn test_match() {
         let mut game = Game::new(3);
-        game.play(1, 2).ok();
-        game.play(2, 1).ok();
-        assert_eq!(game.board.get_color(1, 2).unwrap(), Color::BLACK);
-        assert_eq!(game.board.get_color(2, 1).unwrap(), Color::WHITE);
+        let coord1 = Coords { row: 1, column: 2 };
+        let coord2 = Coords { row: 2, column: 1 };
+        game.play(coord1).ok();
+        game.play(coord2).ok();
+        assert_eq!(game.board.get_color(coord1).unwrap(), Color::BLACK);
+        assert_eq!(game.board.get_color(coord2).unwrap(), Color::WHITE);
         assert_eq!(game.current_player, Color::BLACK);
         assert_eq!(game.status, Status::Ongoing);
     }

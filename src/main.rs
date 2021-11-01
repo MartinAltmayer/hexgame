@@ -1,4 +1,4 @@
-use hexgame::board::Color;
+use hexgame::board::{Color, Coords};
 use hexgame::game::Game;
 use std::io;
 use std::io::Write;
@@ -21,15 +21,9 @@ fn main() {
     }
 }
 
-#[derive(Debug, PartialEq)]
-struct Coords {
-    row: u8,
-    column: u8,
-}
-
 fn request_and_play_move(game: &mut Game) -> Result<(), io::Error> {
     let coords = request_coords(game)?;
-    game.play(coords.row, coords.column)
+    game.play(coords)
         .map_err(|error| invalid_input(&error.to_string()))
 }
 

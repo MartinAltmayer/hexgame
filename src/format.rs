@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::board::{Board, Color};
+use crate::board::{Board, Color, Coords};
 
 impl fmt::Display for Board {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -8,7 +8,7 @@ impl fmt::Display for Board {
             write!(f, "{}", " ".repeat(row.into()))?;
 
             for column in 0..self.size() {
-                let color = self.get_color(row, column);
+                let color = self.get_color(Coords { row, column });
                 write!(f, "{} ", char_for_color(color))?;
             }
 
@@ -36,8 +36,8 @@ mod test {
     #[test]
     fn test_write_board() {
         let mut board = Board::new(3);
-        board.play(0, 0, Color::BLACK).ok();
-        board.play(2, 1, Color::WHITE).ok();
+        board.play(Coords { row: 0, column: 0 }, Color::BLACK).ok();
+        board.play(Coords { row: 2, column: 1 }, Color::WHITE).ok();
 
         let mut output = String::new();
         write!(&mut output, "{}", &board).ok();
