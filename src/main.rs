@@ -8,7 +8,8 @@ fn main() {
     println!("{}", &game.board);
 
     loop {
-        let result = request_and_play_move(&mut game);
+        let result = request_coords(&game)
+        .and_then(|coords| play(&mut game, coords));
 
         match result {
             Ok(_) => {
@@ -19,12 +20,6 @@ fn main() {
             }
         }
     }
-}
-
-fn request_and_play_move(game: &mut Game) -> Result<(), io::Error> {
-    let coords = request_coords(game)?;
-    game.play(coords)
-        .map_err(|error| invalid_input(&error.to_string()))
 }
 
 fn request_coords(game: &Game) -> Result<Coords, io::Error> {
@@ -70,9 +65,14 @@ fn read_coords<Reader: io::BufRead>(
     Ok(Coords { row, column })
 }
 
+fn play(game: &mut Game, coords: Coords) -> Result<(), io::Error> {
+    game.play(coords).map_err(|error| invalid_input(&error.to_string()))
+}
+
 fn invalid_input(message: &str) -> io::Error {
     io::Error::new(io::ErrorKind::InvalidInput, message)
 }
+
 
 #[cfg(test)]
 mod test {
