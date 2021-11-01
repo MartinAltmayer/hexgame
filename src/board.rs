@@ -9,8 +9,17 @@ pub enum Color {
     WHITE,
 }
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub enum Position {
+    TOP,
+    RIGHT,
+    BOTTOM,
+    LEFT,
+    Index(u16)
+}
+
 #[derive(Copy, Clone, Default)]
-pub struct Cell {
+struct Cell {
     color: Option<Color>,
 }
 
@@ -20,6 +29,8 @@ pub struct Board {
 
 impl Board {
     pub fn new(size: u8) -> Board {
+        // Neighbor calculations assume size >= 2
+        assert!(size >= 2, "Size must be at least 2");
         Board {
             cells: SquareArray::new(size),
         }
@@ -33,12 +44,49 @@ impl Board {
         self.cells.at_coord(coords).color
     }
 
+    fn get_neighbors(&self, index: u16) -> Vec<Position> {
+        let mut neighbors = Vec::new();
+        let size: u16 = self.size().into();
+
+        if index % size == 0 {
+            neighbors.push(Position::LEFT);
+        } else {
+            neighbors.push(Position::Index(index - 1));
+        }
+
+        if index % size == size - 1 {
+            neighbors.push(Position::RIGHT);
+        } else {
+            neighbors.push(Position::Index(index + 1));
+        }
+
+        if index < size {
+            neighbors.push(Position::TOP);
+        } else {
+            neighbors.push(Position::Index(index - size));
+            if index % size < size - 1 {
+                neighbors.push(Position::Index(index - size + 1));
+            }
+        }
+
+        if index >= size * (size - 1) {
+            neighbors.push(Position::BOTTOM);
+        } else {
+            neighbors.push(Position::Index(index + size));
+            if index % size > 0 {
+                neighbors.push(Position::Index(index + size - 1))
+            }
+        }
+
+        neighbors
+    }
+
     pub fn play(&mut self, coords: Coords, color: Color) -> Result<(), InvalidMove> {
         if coords.row >= self.size() || coords.column >= self.size() {
             return Err(InvalidMove::OutOfBounds(coords));
         }
 
-        let index = self.cells.index_from_coord(coords);
+        let index = self.cells.index_from_coords(coords);
         match self.cells.at_index(index).color {
             None => Ok(self.cells.set_index(index, Cell { color: Some(color) })),
             _ => Err(InvalidMove::CellOccupied(coords)),
@@ -110,5 +158,152 @@ mod tests {
         let _ = board.play(coords, Color::BLACK);
         let error = board.play(coords, Color::BLACK).unwrap_err();
         assert_eq!(error, InvalidMove::CellOccupied(coords));
+    }
+}
+
+
+#[cfg(test)]
+mod test_neighbors {
+    use super::*;
+    use std::collections::HashSet;
+    use std::iter::FromIterator;
+
+    fn check_neighbors(board: &Board, row: u8, column: u8, expected: &[Position]) {
+        let index = board.cells.index_from_coords(Coords { row, column });
+        let neighbors = HashSet::<Position>::from_iter(board.get_neighbors(index).iter().copied());
+        let expected = HashSet::from_iter(expected.iter().copied());
+        assert_eq!(neighbors, expected);
+    }
+
+    fn make_position(board: &Board, row: u8, column: u8) -> Position {
+        Position::Index(board.cells.index_from_coords(Coords { row, column }))
+    }
+
+    #[test]
+    fn test_neighbors_top_left_corner() {
+        let board = Board::new(5);
+        #[rustfmt::skip]
+        check_neighbors(&board, 0, 0, &[
+            Position::TOP,
+            Position::LEFT,
+            make_position(&board, 0, 1),
+            make_position(&board, 1, 0),
+        ]);
+        #[rustfmt::skip]
+        check_neighbors(&board, 0, 1, &[
+            Position::TOP,
+            make_position(&board, 0, 0),
+            make_position(&board, 0, 2),
+            make_position(&board, 1, 0),
+            make_position(&board, 1, 1),
+        ]);
+        #[rustfmt::skip]
+        check_neighbors(&board, 1, 0, &[
+            Position::LEFT,
+            make_position(&board, 0, 0),
+            make_position(&board, 0, 1),
+            make_position(&board, 1, 1),
+            make_position(&board, 2, 0),
+        ]);
+    }
+
+    #[test]
+    fn test_neighbors_top_right_corner() {
+        let board = Board::new(5);
+        #[rustfmt::skip]
+        check_neighbors(&board, 0, 4, &[
+            Position::TOP,
+            Position::RIGHT,
+            make_position(&board, 0, 3),
+            make_position(&board, 1, 3),
+            make_position(&board, 1, 4),
+        ]);
+        #[rustfmt::skip]
+        check_neighbors(&board, 0, 3, &[
+            Position::TOP,
+            make_position(&board, 0, 2),
+            make_position(&board, 0, 4),
+            make_position(&board, 1, 2),
+            make_position(&board, 1, 3),
+        ]);
+        #[rustfmt::skip]
+        check_neighbors(&board, 1, 4, &[
+            Position::RIGHT,
+            make_position(&board, 0, 4),
+            make_position(&board, 1, 3),
+            make_position(&board, 2, 3),
+            make_position(&board, 2, 4),
+        ]);
+    }
+
+    #[test]
+    fn test_neighbors_bottom_left_corner() {
+        let board = Board::new(5);
+        #[rustfmt::skip]
+        check_neighbors(&board, 4, 0, &[
+            Position::BOTTOM,
+            Position::LEFT,
+            make_position(&board, 3, 0),
+            make_position(&board, 3, 1),
+            make_position(&board, 4, 1),
+        ]);
+        #[rustfmt::skip]
+        check_neighbors(&board, 3, 0, &[
+            Position::LEFT,
+            make_position(&board, 2, 0),
+            make_position(&board, 2, 1),
+            make_position(&board, 3, 1),
+            make_position(&board, 4, 0),
+        ]);
+        #[rustfmt::skip]
+        check_neighbors(&board, 4, 1, &[
+            Position::BOTTOM,
+            make_position(&board, 3, 1),
+            make_position(&board, 3, 2),
+            make_position(&board, 4, 0),
+            make_position(&board, 4, 2),
+        ]);
+    }
+
+    #[test]
+    fn test_neighbors_bottom_right_corner() {
+        let board = Board::new(5);
+        #[rustfmt::skip]
+        check_neighbors(&board, 4, 4, &[
+            Position::BOTTOM,
+            Position::RIGHT,
+            make_position(&board, 3, 4),
+            make_position(&board, 4, 3),
+        ]);
+        #[rustfmt::skip]
+        check_neighbors(&board, 3, 4, &[
+            Position::RIGHT,
+            make_position(&board, 2, 4),
+            make_position(&board, 3, 3),
+            make_position(&board, 4, 3),
+            make_position(&board, 4, 4),
+        ]);
+        #[rustfmt::skip]
+        check_neighbors(&board, 4, 3, &[
+            Position::BOTTOM,
+            make_position(&board, 3, 3),
+            make_position(&board, 3, 4),
+            make_position(&board, 4, 2),
+            make_position(&board, 4, 4),
+        ]);
+    }
+
+    #[test]
+    fn test_neighbors_center() {
+        let board = Board::new(5);
+        #[rustfmt::skip]
+        check_neighbors(&board, 2, 2, &[
+            make_position(&board, 1, 2),
+            make_position(&board, 1, 3),
+            make_position(&board, 2, 1),
+            make_position(&board, 2, 3),
+            make_position(&board, 3, 1),
+            make_position(&board, 3, 2),
+        ]);
     }
 }

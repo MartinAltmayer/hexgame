@@ -26,7 +26,7 @@ impl<T: Default + Copy> SquareArray<T> {
         }
     }
 
-    pub fn index_from_coord(&self, coords: Coords) -> u16 {
+    pub fn index_from_coords(&self, coords: Coords) -> u16 {
         let Coords { row, column } = coords;
         debug_assert!(
             coords.row < self.size,
@@ -44,12 +44,17 @@ impl<T: Default + Copy> SquareArray<T> {
         u16::from(row) * u16::from(self.size) + u16::from(column)
     }
 
+    pub fn coords_from_index(&self, index: u16) -> Coords {
+        let size: u16 = self.size.into();
+        Coords { row: (index / size) as u8, column: (index % size) as u8 }
+    }
+
     pub fn at_index(&self, index: u16) -> T {
         self.items[usize::from(index)]
     }
 
     pub fn at_coord(&self, coords: Coords) -> T {
-        self.at_index(self.index_from_coord(coords))
+        self.at_index(self.index_from_coords(coords))
     }
 
     pub fn set_index(&mut self, index: u16, value: T) {
@@ -75,5 +80,12 @@ mod tests {
         array.set_index(5, value);
         assert_eq!(array.at_index(5), value);
         assert_eq!(array.at_coord(Coords { row: 1, column: 2 }), value);
+    }
+
+    #[test]
+    fn test_index_coords_conversion() {
+        let array: SquareArray<u16> = SquareArray::new(3);
+        assert_eq!(array.index_from_coords(Coords { row: 1, column: 2}), 5);
+        assert_eq!(array.coords_from_index(5), Coords { row: 1, column: 2});
     }
 }
