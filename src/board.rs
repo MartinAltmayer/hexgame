@@ -1,5 +1,6 @@
 pub use crate::square_array::Coords;
 use crate::square_array::SquareArray;
+use std::error;
 use std::fmt;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -63,6 +64,8 @@ impl fmt::Display for InvalidMove {
         }
     }
 }
+
+impl error::Error for InvalidMove {}
 
 #[cfg(test)]
 mod tests {
