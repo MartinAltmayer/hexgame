@@ -1,4 +1,4 @@
-use crate::board::{Board, Color, Coords, InvalidMove};
+use crate::board::{Board, Color, Coords, InvalidMove, Position};
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Status {
@@ -21,13 +21,26 @@ impl Game {
         }
     }
 
+    pub fn get_edges(color: Color) -> (Position, Position) {
+        match color {
+            Color::BLACK => (Position::TOP, Position::BOTTOM),
+            Color::WHITE => (Position::LEFT, Position::RIGHT),
+        }
+    }
+
     pub fn play(&mut self, coords: Coords) -> Result<(), InvalidMove> {
         self.board.play(coords, self.current_player)?;
 
-        self.current_player = match self.current_player {
-            Color::BLACK => Color::WHITE,
-            Color::WHITE => Color::BLACK,
-        };
+        let edges = Game::get_edges(self.current_player);
+        if self.board.is_connected(edges.0, edges.1) {
+            self.status = Status::Finished(self.current_player);
+        } else {
+            self.current_player = match self.current_player {
+                Color::BLACK => Color::WHITE,
+                Color::WHITE => Color::BLACK,
+            };
+        }
+
         Ok(())
     }
 }
