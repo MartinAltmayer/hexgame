@@ -12,12 +12,12 @@ impl fmt::Display for Coords {
     }
 }
 
-pub struct SquareArray<T: Default + Copy> {
+pub struct SquareArray<T: Copy + Default> {
     pub size: u8,
     items: Vec<T>,
 }
 
-impl<T: Default + Copy> SquareArray<T> {
+impl<T: Copy + Default> SquareArray<T> {
     pub fn new(size: u8) -> SquareArray<T> {
         let item_count: usize = usize::from(size) * usize::from(size);
         SquareArray {
