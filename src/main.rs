@@ -1,21 +1,29 @@
 use hexgame::board::{Color, Coords};
-use hexgame::game::Game;
+use hexgame::game::{Game, Status};
 use std::io;
 use std::io::Write;
 
 fn main() {
-    let mut game = Game::new(3);
+    let mut game = Game::new(7);
     println!("{}", &game.board);
 
     loop {
-        let result = request_coords(&game).and_then(|coords| play(&mut game, coords));
+        match game.status {
+            Status::Ongoing => {
+                let result = request_coords(&game).and_then(|coords| play(&mut game, coords));
 
-        match result {
-            Ok(_) => {
-                println!("{}", &game.board);
+                match result {
+                    Ok(_) => {
+                        println!("{}", &game.board);
+                    }
+                    Err(error) => {
+                        println!("Error: {}", error);
+                    }
+                }
             }
-            Err(error) => {
-                println!("Error: {}", error);
+            Status::Finished(color) => {
+                println!("Game Over! The winner is {:?}", color);
+                return;
             }
         }
     }

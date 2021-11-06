@@ -1,4 +1,5 @@
 use crate::board::{Board, Color, Coords, InvalidMove, Position};
+use crate::union_find::UnionFind;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Status {
@@ -32,7 +33,8 @@ impl Game {
         self.board.play(coords, self.current_player)?;
 
         let edges = Game::get_edges(self.current_player);
-        if self.board.is_connected(edges.0, edges.1) {
+
+        if self.board.is_in_same_set(edges.0, edges.1) {
             self.status = Status::Finished(self.current_player);
         } else {
             self.current_player = match self.current_player {
