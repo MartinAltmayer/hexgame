@@ -1,6 +1,6 @@
 pub use crate::square_array::Coords;
 use crate::square_array::SquareArray;
-use std::cmp::Ordering;
+use crate::union_find::UnionFind;
 use std::error;
 use std::fmt;
 
@@ -10,13 +10,15 @@ pub enum Color {
     WHITE,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Position {
+    // Order is important here: UnionFind's merge always chooses larger positions as roots.
+    // Thus, BOTTOM and RIGHT are always their own parent and we do not have to store their parents.
     TOP,
-    RIGHT,
-    BOTTOM,
     LEFT,
     Index(u16),
+    BOTTOM,
+    RIGHT,
 }
 
 #[derive(Copy, Clone, Default)]
@@ -27,8 +29,8 @@ struct Cell {
 
 pub struct Board {
     cells: SquareArray<Cell>,
-    right_parent: Option<Position>,
-    bottom_parent: Option<Position>,
+    top_parent: Position,
+    left_parent: Position,
 }
 
 impl Board {
@@ -37,8 +39,8 @@ impl Board {
         assert!(size >= 2, "Size must be at least 2");
         Board {
             cells: SquareArray::new(size),
-            right_parent: None,
-            bottom_parent: None,
+            top_parent: Position::TOP,
+            left_parent: Position::LEFT,
         }
     }
 
@@ -95,101 +97,65 @@ impl Board {
         neighbors
     }
 
-    fn get_parent(&self, position: Position) -> Option<Position> {
-        match position {
-            Position::TOP | Position::LEFT => None,
-            Position::BOTTOM => self.bottom_parent,
-            Position::RIGHT => self.right_parent,
-            Position::Index(index) => self.cells.at_index(index).parent,
-        }
-    }
-
-    fn set_parent(&mut self, position: Position, parent: Position) {
-        match position {
-            Position::TOP | Position::LEFT => panic!("Cannot set parent of {:?}", position),
-            Position::BOTTOM => {
-                self.bottom_parent = Some(parent);
-            }
-            Position::RIGHT => {
-                self.right_parent = Some(parent);
-            }
-            Position::Index(index) => {
-                self.cells.at_index(index).parent = Some(parent);
-            }
-        }
-    }
-
-    pub fn find_root(&mut self, position: Position) -> Position {
-        let mut root = position;
-        loop {
-            match self.get_parent(root) {
-                Some(p) => {
-                    root = p;
-                }
-                None => break,
-            }
-        }
-
-        loop {
-            let parent = self.get_parent(position);
-            if parent != Some(root) {
-                self.set_parent(position, root)
-            } else {
-                break;
-            }
-        }
-
-        root
-    }
-
-    fn compare(&self, index: u16, position: Position) -> Ordering {
-        match position {
-            Position::TOP | Position::LEFT => Ordering::Greater,
-            Position::BOTTOM | Position::RIGHT => Ordering::Less,
-            Position::Index(pos_index) => index.cmp(&pos_index),
-        }
-    }
-
-    pub fn merge(&mut self, index: u16, position: Position) {
-        let root = self.find_root(position);
-        match self.compare(index.parent, root) {
-            Ordering::Greater => {
-                self.set_parent(Position::Index(index), root);
-            }
-            Ordering::Less => {
-                self.set_parent(position, Position::Index(index));
-            }
-            Ordering::Equal => (),
-        }
-    }
-
-    pub fn is_connected(&mut self, position1: Position, position2: Position) -> bool {
-        self.find_root(position1) == self.find_root(position2)
-    }
-
     pub fn play(&mut self, coords: Coords, color: Color) -> Result<(), InvalidMove> {
         if coords.row >= self.size() || coords.column >= self.size() {
             return Err(InvalidMove::OutOfBounds(coords));
         }
 
         let index = self.cells.index_from_coords(coords);
-        match self.cells.at_index(index).color {
-            None => {
+        let position = Position::Index(index);
+
+        if self.cells.at_index(index).color.is_some() {
+            return Err(InvalidMove::CellOccupied(coords));
+        }
+
+        self.cells.set_index(
+            index,
+            Cell {
+                color: Some(color),
+                parent: Some(position),
+            },
+        );
+
+        for neighbor in self.get_neighbors(index) {
+            if self.get_color_of_position(neighbor) == Some(color) {
+                self.merge(position, neighbor);
+            }
+        }
+
+        Ok(())
+    }
+}
+
+impl UnionFind<Position> for Board {
+    fn get_parent(&self, item: Position) -> Position {
+        match item {
+            Position::TOP => self.top_parent,
+            Position::LEFT => self.left_parent,
+            Position::BOTTOM | Position::RIGHT => item,
+            Position::Index(index) => self.cells.at_index(index).parent.unwrap_or(item),
+        }
+    }
+
+    fn set_parent(&mut self, item: Position, parent: Position) {
+        match item {
+            Position::TOP => {
+                self.top_parent = parent;
+            }
+            Position::LEFT => {
+                self.left_parent = parent;
+            }
+            Position::BOTTOM | Position::RIGHT => panic!("Cannot set parent of {:?}", item),
+            Position::Index(index) => {
+                let cell = self.cells.at_index(index);
                 self.cells.set_index(
                     index,
                     Cell {
-                        color: Some(color),
-                        parent: None,
+                        parent: Some(parent),
+                        ..cell
                     },
                 );
-                for neighbor in self.get_neighbors(index) {
-                    if self.get_color_of_position(neighbor) == Some(color) {
-                        self.merge(index, neighbor);
-                    }
-                }
-                Ok(())
             }
-            _ => Err(InvalidMove::CellOccupied(coords)),
         }
     }
 }
