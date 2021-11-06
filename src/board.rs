@@ -14,9 +14,9 @@ pub enum Color {
 pub enum Position {
     // Order is important here: UnionFind's merge always chooses larger positions as roots.
     // Thus, BOTTOM and RIGHT are always their own parent and we do not have to store their parents.
+    Index(u16),
     TOP,
     LEFT,
-    Index(u16),
     BOTTOM,
     RIGHT,
 }

@@ -1,5 +1,14 @@
 use std::cmp::Ordering;
 
+/// This is a standard UnionFind algorithm, see
+/// https://en.wikipedia.org/wiki/Disjoint-set_data_structure
+/// It uses the path-compression heuristic. Instead of merge-by-size or merge-by-rank we
+/// simply assume that items are ordered and always choose the larger ones as roots.
+/// Although the theoretical performance of this method is worse, I expect practical performance to be equal.
+/// Actually, it should even be faster, because we do not need to compute and store ranks or sizes.
+/// It is also used by Mohex: https://github.com/cgao3/benzene-vanilla-cmake/blob/master/src/mohex/MoHexBoard.cpp
+///
+/// This trait makes no assumptions on how parents are stored. Implementors must provide `get_parent` and `set_parent` methods for this.
 pub trait UnionFind<T: Copy + PartialOrd + Eq> {
     fn get_parent(&self, item: T) -> T;
     fn set_parent(&mut self, item: T, parent: T);
