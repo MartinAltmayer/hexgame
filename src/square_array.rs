@@ -44,14 +44,6 @@ impl<T: Copy + Default> SquareArray<T> {
         u16::from(row) * u16::from(self.size) + u16::from(column)
     }
 
-    pub fn coords_from_index(&self, index: u16) -> Coords {
-        let size: u16 = self.size.into();
-        Coords {
-            row: (index / size) as u8,
-            column: (index % size) as u8,
-        }
-    }
-
     pub fn at_index(&self, index: u16) -> T {
         self.items[usize::from(index)]
     }
@@ -86,9 +78,8 @@ mod tests {
     }
 
     #[test]
-    fn test_index_coords_conversion() {
+    fn test_index_from_coords() {
         let array: SquareArray<u16> = SquareArray::new(3);
         assert_eq!(array.index_from_coords(Coords { row: 1, column: 2 }), 5);
-        assert_eq!(array.coords_from_index(5), Coords { row: 1, column: 2 });
     }
 }
