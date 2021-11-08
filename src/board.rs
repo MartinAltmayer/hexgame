@@ -37,6 +37,8 @@ impl Board {
     pub fn new(size: u8) -> Board {
         // Neighbor calculations assume size >= 2
         assert!(size >= 2, "Size must be at least 2");
+        // Technically, we support much larger boards, but future optimizations may restrict this.
+        assert!(size <= 19, "Size must be at most 19");
         Board {
             cells: SquareArray::new(size),
             top_parent: Position::TOP,
