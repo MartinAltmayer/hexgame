@@ -227,6 +227,54 @@ mod tests {
         let error = board.play(coords, Color::BLACK).unwrap_err();
         assert_eq!(error, InvalidMove::CellOccupied(coords));
     }
+
+    #[test]
+    fn test_merge_neighbors_of_own_color() {
+        let mut board = Board::new(5);
+        let center = Coords { row: 2, column: 2 };
+        let center_index = Position::Index(board.cells.index_from_coords(center));
+        let neighbor1 = Coords { row: 1, column: 2 };
+        let neighbor1_index = Position::Index(board.cells.index_from_coords(neighbor1));
+        let neighbor2 = Coords { row: 3, column: 2 };
+        let neighbor2_index = Position::Index(board.cells.index_from_coords(neighbor2));
+        let _ = board.play(neighbor1, Color::BLACK);
+        let _ = board.play(neighbor2, Color::BLACK);
+
+        assert!(!board.is_in_same_set(neighbor1_index, neighbor2_index));
+
+        let _ = board.play(center, Color::BLACK);
+
+        assert!(board.is_in_same_set(neighbor1_index, neighbor2_index));
+        assert!(board.is_in_same_set(center_index, neighbor2_index));
+    }
+
+    #[test]
+    fn test_do_not_merge_neighbors_of_other_color() {
+        let mut board = Board::new(5);
+        let center = Coords { row: 2, column: 2 };
+        let center_index = Position::Index(board.cells.index_from_coords(center));
+        let neighbor = Coords { row: 1, column: 2 };
+        let neighbor_index = Position::Index(board.cells.index_from_coords(neighbor));
+
+        let _ = board.play(neighbor, Color::WHITE);
+        let _ = board.play(center, Color::BLACK);
+
+        assert!(!board.is_in_same_set(center_index, neighbor_index));
+    }
+
+    #[test]
+    fn test_do_not_merge_cells_that_are_not_connected() {
+        let mut board = Board::new(3);
+        let top_left = Coords { row: 0, column: 0 };
+        let top_left_index = Position::Index(board.cells.index_from_coords(top_left));
+        let bottom_right = Coords { row: 2, column: 2 };
+        let bottom_right_index = Position::Index(board.cells.index_from_coords(bottom_right));
+
+        let _ = board.play(top_left, Color::BLACK);
+        let _ = board.play(bottom_right, Color::BLACK);
+
+        assert!(!board.is_in_same_set(top_left_index, bottom_right_index));
+    }
 }
 
 #[cfg(test)]
