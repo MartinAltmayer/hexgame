@@ -164,6 +164,7 @@ impl UnionFind<Position> for Board {
 
 #[derive(Debug, PartialEq)]
 pub enum InvalidMove {
+    GameOver,
     OutOfBounds(Coords),
     CellOccupied(Coords),
 }
@@ -171,6 +172,7 @@ pub enum InvalidMove {
 impl fmt::Display for InvalidMove {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         match self {
+            InvalidMove::GameOver => write!(f, "Game has ended"),
             InvalidMove::OutOfBounds(coords) => {
                 write!(f, "Coordinates {} are out of bounds", coords)
             }

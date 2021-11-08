@@ -30,6 +30,10 @@ impl Game {
     }
 
     pub fn play(&mut self, coords: Coords) -> Result<(), InvalidMove> {
+        if let Status::Finished(_) = self.status {
+            return Err(InvalidMove::GameOver);
+        }
+
         self.board.play(coords, self.current_player)?;
 
         let edges = Game::get_edges(self.current_player);
@@ -62,5 +66,44 @@ mod test {
         assert_eq!(game.board.get_color(coord2).unwrap(), Color::WHITE);
         assert_eq!(game.current_player, Color::BLACK);
         assert_eq!(game.status, Status::Ongoing);
+    }
+
+    #[test]
+    fn test_cannot_make_move_after_game_has_finished() {
+        let mut game = Game::new(2);
+        let _ = game.play(Coords { row: 0, column: 0 });
+        let _ = game.play(Coords { row: 0, column: 1 });
+        let _ = game.play(Coords { row: 1, column: 0 });
+        let result = game.play(Coords { row: 1, column: 1 });
+
+        assert_eq!(result, Err(InvalidMove::GameOver));
+    }
+
+    #[test]
+    fn test_only_black_wins_on_vertical_connection() {
+        let mut game = Game::new(3);
+        let _ = game.play(Coords { row: 2, column: 2 }); // unused, let white start filling columns
+
+        let _ = game.play(Coords { row: 0, column: 0 });
+        let _ = game.play(Coords { row: 0, column: 1 });
+        let _ = game.play(Coords { row: 1, column: 0 });
+        let _ = game.play(Coords { row: 1, column: 1 });
+        let _ = game.play(Coords { row: 2, column: 0 }); // white's vertical connection complete
+        let _ = game.play(Coords { row: 2, column: 1 }); // black wins here
+
+        assert_eq!(game.status, Status::Finished(Color::BLACK));
+    }
+
+    #[test]
+    fn test_only_white_wins_on_horizontal_connection() {
+        let mut game = Game::new(3);
+        let _ = game.play(Coords { row: 0, column: 0 });
+        let _ = game.play(Coords { row: 1, column: 0 });
+        let _ = game.play(Coords { row: 0, column: 1 });
+        let _ = game.play(Coords { row: 1, column: 1 });
+        let _ = game.play(Coords { row: 0, column: 2 }); // black's horizontal connection complete
+        let _ = game.play(Coords { row: 1, column: 2 }); // white wins here
+
+        assert_eq!(game.status, Status::Finished(Color::WHITE));
     }
 }
