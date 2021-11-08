@@ -1,10 +1,21 @@
 use hexgame::board::{Color, Coords};
 use hexgame::game::{Game, Status};
+use std::env;
 use std::io;
 use std::io::Write;
 
+const DEFAULT_SIZE: u8 = 9;
+
 fn main() {
-    let mut game = Game::new(7);
+    let size = match read_size() {
+        Ok(size) => size,
+        Err(error) => {
+            println!("Error: {}", error);
+            return;
+        }
+    };
+
+    let mut game = Game::new(size);
     println!("{}", &game.board);
 
     loop {
@@ -26,6 +37,24 @@ fn main() {
                 return;
             }
         }
+    }
+}
+
+fn read_size() -> std::io::Result<u8> {
+    let args: Vec<String> = env::args().collect();
+
+    if args.len() > 2 {
+        return Err(invalid_input(
+            "Expected at most one command line argument - the size of the board",
+        ));
+    }
+
+    if args.len() == 2 {
+        args[1]
+            .parse::<u8>()
+            .map_err(|e| invalid_input(&e.to_string()))
+    } else {
+        Ok(DEFAULT_SIZE)
     }
 }
 
