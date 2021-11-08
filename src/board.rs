@@ -4,6 +4,11 @@ use crate::union_find::UnionFind;
 use std::error;
 use std::fmt;
 
+// Neighbor calculations assume size >= 2
+pub const MIN_BOARD_SIZE: u8 = 2;
+// Technically, we support much larger boards, but future optimizations may restrict this.
+pub const MAX_BOARD_SIZE: u8 = 19;
+
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Color {
     BLACK,
@@ -35,10 +40,12 @@ pub struct Board {
 
 impl Board {
     pub fn new(size: u8) -> Board {
-        // Neighbor calculations assume size >= 2
-        assert!(size >= 2, "Size must be at least 2");
-        // Technically, we support much larger boards, but future optimizations may restrict this.
-        assert!(size <= 19, "Size must be at most 19");
+        assert!(
+            MIN_BOARD_SIZE <= size && size <= MAX_BOARD_SIZE,
+            "Size must be between {} and {}",
+            MIN_BOARD_SIZE,
+            MAX_BOARD_SIZE
+        );
         Board {
             cells: SquareArray::new(size),
             top_parent: Position::TOP,

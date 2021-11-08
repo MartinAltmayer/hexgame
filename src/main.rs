@@ -1,4 +1,4 @@
-use hexgame::board::{Color, Coords};
+use hexgame::board::{Color, Coords, MAX_BOARD_SIZE, MIN_BOARD_SIZE};
 use hexgame::game::{Game, Status};
 use std::env;
 use std::io;
@@ -53,8 +53,20 @@ fn read_size() -> std::io::Result<u8> {
         args[1]
             .parse::<u8>()
             .map_err(|e| invalid_input(&e.to_string()))
+            .and_then(check_size)
     } else {
         Ok(DEFAULT_SIZE)
+    }
+}
+
+fn check_size(size: u8) -> std::io::Result<u8> {
+    if size < MIN_BOARD_SIZE || size > MAX_BOARD_SIZE {
+        Err(invalid_input(&format!(
+            "Size must be between {} and {}",
+            MIN_BOARD_SIZE, MAX_BOARD_SIZE
+        )))
+    } else {
+        Ok(size)
     }
 }
 
