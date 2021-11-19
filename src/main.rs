@@ -1,5 +1,5 @@
-use hexgame::board::{Color, Coords, MAX_BOARD_SIZE, MIN_BOARD_SIZE};
-use hexgame::game::{Game, Status};
+use hexgame::{Color, Coords, MAX_BOARD_SIZE, MIN_BOARD_SIZE};
+use hexgame::{Game, Status};
 use std::env;
 use std::io;
 use std::io::Write;
