@@ -134,6 +134,20 @@ impl Board {
 
         Ok(())
     }
+
+    pub fn get_empty_cells(&self) -> Vec<Coords> {
+        let mut result = vec![];
+        for row in 0..self.size() {
+            for column in 0..self.size() {
+                let coords = Coords { row, column };
+                if let None = self.cells.at_coord(coords).color {
+                    result.push(coords);
+                }
+            }
+        }
+
+        result
+    }
 }
 
 impl UnionFind<Position> for Board {
@@ -283,6 +297,18 @@ mod tests {
         let _ = board.play(bottom_right, Color::BLACK);
 
         assert!(!board.is_in_same_set(top_left_index, bottom_right_index));
+    }
+
+    #[test]
+    fn test_get_empty_cells() {
+        let mut board = Board::new(2);
+        let _ = board.play(Coords { row: 0, column: 0 }, Color::BLACK);
+        let _ = board.play(Coords { row: 1, column: 1 }, Color::WHITE);
+
+        assert_eq!(
+            board.get_empty_cells(),
+            vec![Coords { row: 0, column: 1 }, Coords { row: 1, column: 0 },]
+        );
     }
 }
 
