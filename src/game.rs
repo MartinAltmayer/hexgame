@@ -1,12 +1,13 @@
 use crate::board::{Board, Color, Coords, InvalidMove, Position};
 use crate::union_find::UnionFind;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Status {
     Ongoing,
     Finished(Color),
 }
 
+#[derive(Clone)]
 pub struct Game {
     pub board: Board,
     pub current_player: Color,

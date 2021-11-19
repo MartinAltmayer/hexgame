@@ -32,6 +32,7 @@ struct Cell {
     parent: Option<Position>,
 }
 
+#[derive(Clone)]
 pub struct Board {
     cells: SquareArray<Cell>,
     top_parent: Position,

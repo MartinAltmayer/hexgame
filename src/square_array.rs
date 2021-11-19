@@ -12,6 +12,7 @@ impl fmt::Display for Coords {
     }
 }
 
+#[derive(Clone)]
 pub struct SquareArray<T: Copy + Default> {
     pub size: u8,
     items: Vec<T>,
