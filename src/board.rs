@@ -71,6 +71,7 @@ impl Board {
     }
 
     fn get_neighbors(&self, index: u16) -> Vec<Position> {
+        // This method guarantees that neighbors are returned in clock-wise order, starting with the left neighbor.
         let mut neighbors = Vec::new();
         let size: u16 = self.size().into();
 
@@ -80,12 +81,6 @@ impl Board {
             neighbors.push(Position::Index(index - 1));
         }
 
-        if index % size == size - 1 {
-            neighbors.push(Position::RIGHT);
-        } else {
-            neighbors.push(Position::Index(index + 1));
-        }
-
         if index < size {
             neighbors.push(Position::TOP);
         } else {
@@ -93,6 +88,12 @@ impl Board {
             if index % size < size - 1 {
                 neighbors.push(Position::Index(index - size + 1));
             }
+        }
+
+        if index % size == size - 1 {
+            neighbors.push(Position::RIGHT);
+        } else {
+            neighbors.push(Position::Index(index + 1));
         }
 
         if index >= size * (size - 1) {
@@ -316,13 +317,10 @@ mod tests {
 #[cfg(test)]
 mod test_neighbors {
     use super::*;
-    use std::collections::HashSet;
-    use std::iter::FromIterator;
 
     fn check_neighbors(board: &Board, row: u8, column: u8, expected: &[Position]) {
         let index = board.cells.index_from_coords(Coords { row, column });
-        let neighbors = HashSet::<Position>::from_iter(board.get_neighbors(index).iter().copied());
-        let expected = HashSet::from_iter(expected.iter().copied());
+        let neighbors = board.get_neighbors(index);
         assert_eq!(neighbors, expected);
     }
 
@@ -335,18 +333,18 @@ mod test_neighbors {
         let board = Board::new(5);
         #[rustfmt::skip]
         check_neighbors(&board, 0, 0, &[
-            Position::TOP,
             Position::LEFT,
+            Position::TOP,
             make_position(&board, 0, 1),
             make_position(&board, 1, 0),
         ]);
         #[rustfmt::skip]
         check_neighbors(&board, 0, 1, &[
-            Position::TOP,
             make_position(&board, 0, 0),
+            Position::TOP,
             make_position(&board, 0, 2),
-            make_position(&board, 1, 0),
             make_position(&board, 1, 1),
+            make_position(&board, 1, 0),
         ]);
         #[rustfmt::skip]
         check_neighbors(&board, 1, 0, &[
@@ -363,27 +361,27 @@ mod test_neighbors {
         let board = Board::new(5);
         #[rustfmt::skip]
         check_neighbors(&board, 0, 4, &[
+            make_position(&board, 0, 3),
             Position::TOP,
             Position::RIGHT,
-            make_position(&board, 0, 3),
-            make_position(&board, 1, 3),
             make_position(&board, 1, 4),
+            make_position(&board, 1, 3),
         ]);
         #[rustfmt::skip]
         check_neighbors(&board, 0, 3, &[
-            Position::TOP,
             make_position(&board, 0, 2),
+            Position::TOP,
             make_position(&board, 0, 4),
-            make_position(&board, 1, 2),
             make_position(&board, 1, 3),
+            make_position(&board, 1, 2),
         ]);
         #[rustfmt::skip]
         check_neighbors(&board, 1, 4, &[
-            Position::RIGHT,
-            make_position(&board, 0, 4),
             make_position(&board, 1, 3),
-            make_position(&board, 2, 3),
+            make_position(&board, 0, 4),
+            Position::RIGHT,
             make_position(&board, 2, 4),
+            make_position(&board, 2, 3),
         ]);
     }
 
@@ -392,11 +390,11 @@ mod test_neighbors {
         let board = Board::new(5);
         #[rustfmt::skip]
         check_neighbors(&board, 4, 0, &[
-            Position::BOTTOM,
             Position::LEFT,
             make_position(&board, 3, 0),
             make_position(&board, 3, 1),
             make_position(&board, 4, 1),
+            Position::BOTTOM,
         ]);
         #[rustfmt::skip]
         check_neighbors(&board, 3, 0, &[
@@ -408,11 +406,11 @@ mod test_neighbors {
         ]);
         #[rustfmt::skip]
         check_neighbors(&board, 4, 1, &[
-            Position::BOTTOM,
+            make_position(&board, 4, 0),
             make_position(&board, 3, 1),
             make_position(&board, 3, 2),
-            make_position(&board, 4, 0),
             make_position(&board, 4, 2),
+            Position::BOTTOM,
         ]);
     }
 
@@ -421,26 +419,26 @@ mod test_neighbors {
         let board = Board::new(5);
         #[rustfmt::skip]
         check_neighbors(&board, 4, 4, &[
-            Position::BOTTOM,
-            Position::RIGHT,
-            make_position(&board, 3, 4),
             make_position(&board, 4, 3),
+            make_position(&board, 3, 4),
+            Position::RIGHT,
+            Position::BOTTOM,
         ]);
         #[rustfmt::skip]
         check_neighbors(&board, 3, 4, &[
-            Position::RIGHT,
-            make_position(&board, 2, 4),
             make_position(&board, 3, 3),
-            make_position(&board, 4, 3),
+            make_position(&board, 2, 4),
+            Position::RIGHT,
             make_position(&board, 4, 4),
+            make_position(&board, 4, 3),
         ]);
         #[rustfmt::skip]
         check_neighbors(&board, 4, 3, &[
-            Position::BOTTOM,
+            make_position(&board, 4, 2),
             make_position(&board, 3, 3),
             make_position(&board, 3, 4),
-            make_position(&board, 4, 2),
             make_position(&board, 4, 4),
+            Position::BOTTOM,
         ]);
     }
 
@@ -449,12 +447,12 @@ mod test_neighbors {
         let board = Board::new(5);
         #[rustfmt::skip]
         check_neighbors(&board, 2, 2, &[
+            make_position(&board, 2, 1),
             make_position(&board, 1, 2),
             make_position(&board, 1, 3),
-            make_position(&board, 2, 1),
             make_position(&board, 2, 3),
-            make_position(&board, 3, 1),
             make_position(&board, 3, 2),
+            make_position(&board, 3, 1),
         ]);
     }
 }
