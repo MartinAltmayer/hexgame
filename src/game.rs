@@ -42,10 +42,7 @@ impl Game {
         if self.board.is_in_same_set(edges.0, edges.1) {
             self.status = Status::Finished(self.current_player);
         } else {
-            self.current_player = match self.current_player {
-                Color::BLACK => Color::WHITE,
-                Color::WHITE => Color::BLACK,
-            };
+            self.current_player = self.current_player.opponent_color();
         }
 
         Ok(())

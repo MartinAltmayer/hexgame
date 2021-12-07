@@ -15,6 +15,15 @@ pub enum Color {
     WHITE,
 }
 
+impl Color {
+    pub fn opponent_color(&self) -> Self {
+        match self {
+            Color::BLACK => Color::WHITE,
+            Color::WHITE => Color::BLACK,
+        }
+    }
+}
+
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Position {
     // Order is important here: UnionFind's merge always chooses larger positions as roots.
@@ -142,7 +151,7 @@ impl Board {
         for row in 0..self.size() {
             for column in 0..self.size() {
                 let coords = Coords { row, column };
-                if let None = self.cells.at_coord(coords).color {
+                if let None = self.get_color(coords) {
                     result.push(coords);
                 }
             }
