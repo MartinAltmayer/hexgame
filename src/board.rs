@@ -1,4 +1,4 @@
-pub use crate::square_array::Coords;
+use crate::coords::Coords;
 use crate::square_array::SquareArray;
 use crate::union_find::UnionFind;
 use std::error;

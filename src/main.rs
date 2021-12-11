@@ -3,6 +3,7 @@ use hexgame::{Game, Status};
 use std::env;
 use std::io;
 use std::io::Write;
+use std::str::FromStr;
 
 const DEFAULT_SIZE: u8 = 9;
 
@@ -91,26 +92,19 @@ fn read_coords<Reader: io::BufRead>(
     let mut input = String::new();
     reader.read_line(&mut input).expect("Failed to read line");
 
-    let splitted: Vec<&str> = input.trim().split(',').collect();
-
-    if splitted.len() != 2 {
-        return Err(invalid_input("Invalid coordinates. Try something like 2,3"));
-    }
-
-    let row = splitted[0]
-        .parse::<u8>()
-        .map_err(|e| invalid_input(&e.to_string()))?;
-    let column = splitted[1]
-        .parse::<u8>()
-        .map_err(|e| invalid_input(&e.to_string()))?;
-
-    if row >= board_size || column >= board_size {
-        return Err(invalid_input(&format!(
-            "Coordinates must be in range 0 - {}",
-            board_size - 1
-        )));
-    }
-    Ok(Coords { row, column })
+    Coords::from_str(input.trim())
+        .map_err(|error| invalid_input(&error.to_string()))
+        .and_then(|coords| {
+            if coords.is_on_board_with_size(board_size) {
+                Ok(coords)
+            } else {
+                Err(invalid_input(&format!(
+                    "Coordinates must be in range {} to {}",
+                    Coords::new(0, 0),
+                    Coords::new(board_size - 1, board_size - 1)
+                )))
+            }
+        })
 }
 
 fn play(game: &mut Game, coords: Coords) -> Result<(), io::Error> {
@@ -138,29 +132,29 @@ mod test {
 
     #[test]
     fn test_read_coords_with_valid_coords() {
-        let mut input = io::BufReader::new("1,2".as_bytes());
+        let mut input = io::BufReader::new("c2".as_bytes());
         let result = read_coords(&mut input, 3);
         assert_eq!(result.unwrap(), Coords { row: 1, column: 2 });
     }
 
     #[test]
     fn test_read_coords_with_invalid_format() {
-        let mut input = io::BufReader::new("1-2".as_bytes());
+        let mut input = io::BufReader::new("b-1".as_bytes());
         let result = read_coords(&mut input, 3);
         assert_contains(result.unwrap_err(), "Invalid coordinates");
     }
 
     #[test]
-    fn test_read_coords_with_invalid_digit() {
-        let mut input = io::BufReader::new("a,b".as_bytes());
+    fn test_read_coords_with_row_out_of_bounds() {
+        let mut input = io::BufReader::new("a4".as_bytes());
         let result = read_coords(&mut input, 3);
-        assert_contains(result.unwrap_err(), "invalid digit");
+        assert_contains(result.unwrap_err(), "must be in range a1 to c3");
     }
 
     #[test]
-    fn test_read_coords_with_row_out_of_bounds() {
-        let mut input = io::BufReader::new("1,3".as_bytes());
+    fn test_read_coords_with_column_out_of_bounds() {
+        let mut input = io::BufReader::new("d2".as_bytes());
         let result = read_coords(&mut input, 3);
-        assert_contains(result.unwrap_err(), "must be in range 0 - 2");
+        assert_contains(result.unwrap_err(), "must be in range a1 to c3");
     }
 }

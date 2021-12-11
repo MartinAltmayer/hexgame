@@ -1,6 +1,7 @@
 use std::fmt;
 
-use crate::board::{Board, Color, Coords};
+use crate::board::{Board, Color};
+use crate::coords::Coords;
 
 impl fmt::Display for Board {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {

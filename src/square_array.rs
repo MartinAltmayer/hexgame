@@ -1,16 +1,4 @@
-use std::fmt;
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub struct Coords {
-    pub row: u8,
-    pub column: u8,
-}
-
-impl fmt::Display for Coords {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        write!(f, "({}, {})", self.row, self.column)
-    }
-}
+use crate::coords::Coords;
 
 #[derive(Clone)]
 pub struct SquareArray<T: Copy + Default> {
@@ -30,16 +18,10 @@ impl<T: Copy + Default> SquareArray<T> {
     pub fn index_from_coords(&self, coords: Coords) -> u16 {
         let Coords { row, column } = coords;
         debug_assert!(
-            coords.row < self.size,
-            "Row {} out of bounds. Must be at most {}",
-            row,
-            self.size - 1
-        );
-        debug_assert!(
-            column < self.size,
-            "Column {} out of bounds. Must be at most {}",
-            column,
-            self.size - 1
+            coords.is_on_board_with_size(self.size),
+            "Coords {} out of bounds. Must be at most {}",
+            coords,
+            Coords::new(self.size - 1, self.size - 1),
         );
 
         u16::from(row) * u16::from(self.size) + u16::from(column)
@@ -66,7 +48,7 @@ mod tests {
     fn test_constructor() {
         let array: SquareArray<u16> = SquareArray::new(3);
         assert_eq!(array.size, 3);
-        assert_eq!(array.at_coord(Coords { row: 0, column: 0 }), 0);
+        assert_eq!(array.at_coord(Coords::new(0, 0)), 0);
     }
 
     #[test]
@@ -75,12 +57,12 @@ mod tests {
         let mut array: SquareArray<u16> = SquareArray::new(3);
         array.set_index(5, value);
         assert_eq!(array.at_index(5), value);
-        assert_eq!(array.at_coord(Coords { row: 1, column: 2 }), value);
+        assert_eq!(array.at_coord(Coords::new(1, 2)), value);
     }
 
     #[test]
     fn test_index_from_coords() {
         let array: SquareArray<u16> = SquareArray::new(3);
-        assert_eq!(array.index_from_coords(Coords { row: 1, column: 2 }), 5);
+        assert_eq!(array.index_from_coords(Coords::new(1, 2)), 5);
     }
 }
