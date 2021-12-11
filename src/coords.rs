@@ -37,7 +37,7 @@ impl std::str::FromStr for Coords {
     }
 }
 
-fn parse_column_char(c: char) -> Option<u8> {
+pub fn parse_column_char(c: char) -> Option<u8> {
     if 'a' <= c && c <= 'z' {
         Some((c as u8) - ('a' as u8))
     } else {
@@ -45,10 +45,13 @@ fn parse_column_char(c: char) -> Option<u8> {
     }
 }
 
+pub fn to_column_char(column: u8) -> char {
+    (('a' as u8) + column) as char
+}
+
 impl fmt::Display for Coords {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        let column_char = (('a' as u8) + self.column) as char;
-        write!(f, "{}{}", column_char, self.row + 1)
+        write!(f, "{}{}", to_column_char(self.column), self.row + 1)
     }
 }
 
