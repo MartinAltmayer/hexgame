@@ -75,6 +75,18 @@ impl Board {
         Ok(board)
     }
 
+    pub fn to_cells(&self) -> Vec<Vec<Option<Color>>> {
+        let mut result = vec![];
+        for row in 0..self.size() {
+            let mut cells_in_row = vec![];
+            for column in 0..self.size() {
+                cells_in_row.push(self.get_color(Coords { row, column }));
+            }
+            result.push(cells_in_row);
+        }
+        result
+    }
+
     pub fn size(&self) -> u8 {
         self.cells.size
     }
@@ -284,6 +296,22 @@ mod tests {
     }
 
     #[test]
+    fn test_to_cells() {
+        let mut board = Board::new(2);
+        board
+            .play(Coords { row: 0, column: 1 }, Color::BLACK)
+            .unwrap();
+        board
+            .play(Coords { row: 1, column: 0 }, Color::WHITE)
+            .unwrap();
+        let expected_cells = vec![
+            vec![None, Some(Color::BLACK)],
+            vec![Some(Color::WHITE), None],
+        ];
+        assert_eq!(board.to_cells(), expected_cells);
+    }
+
+    #[test]
     fn test_play() {
         let mut board = Board::new(3);
         let coords = Coords { row: 1, column: 2 };
@@ -312,7 +340,7 @@ mod tests {
     fn test_play_on_occupied_cell() {
         let mut board = Board::new(3);
         let coords = Coords { row: 1, column: 2 };
-        let _ = board.play(coords, Color::BLACK);
+        board.play(coords, Color::BLACK).unwrap();
         let error = board.play(coords, Color::BLACK).unwrap_err();
         assert_eq!(error, InvalidMove::CellOccupied(coords));
     }
@@ -326,12 +354,12 @@ mod tests {
         let neighbor1_index = Position::Index(board.cells.index_from_coords(neighbor1));
         let neighbor2 = Coords { row: 3, column: 2 };
         let neighbor2_index = Position::Index(board.cells.index_from_coords(neighbor2));
-        let _ = board.play(neighbor1, Color::BLACK);
-        let _ = board.play(neighbor2, Color::BLACK);
+        board.play(neighbor1, Color::BLACK).unwrap();
+        board.play(neighbor2, Color::BLACK).unwrap();
 
         assert!(!board.is_in_same_set(neighbor1_index, neighbor2_index));
 
-        let _ = board.play(center, Color::BLACK);
+        board.play(center, Color::BLACK).unwrap();
 
         assert!(board.is_in_same_set(neighbor1_index, neighbor2_index));
         assert!(board.is_in_same_set(center_index, neighbor2_index));
@@ -345,8 +373,8 @@ mod tests {
         let neighbor = Coords { row: 1, column: 2 };
         let neighbor_index = Position::Index(board.cells.index_from_coords(neighbor));
 
-        let _ = board.play(neighbor, Color::WHITE);
-        let _ = board.play(center, Color::BLACK);
+        board.play(neighbor, Color::WHITE).unwrap();
+        board.play(center, Color::BLACK).unwrap();
 
         assert!(!board.is_in_same_set(center_index, neighbor_index));
     }
@@ -359,8 +387,8 @@ mod tests {
         let bottom_right = Coords { row: 2, column: 2 };
         let bottom_right_index = Position::Index(board.cells.index_from_coords(bottom_right));
 
-        let _ = board.play(top_left, Color::BLACK);
-        let _ = board.play(bottom_right, Color::BLACK);
+        board.play(top_left, Color::BLACK).unwrap();
+        board.play(bottom_right, Color::BLACK).unwrap();
 
         assert!(!board.is_in_same_set(top_left_index, bottom_right_index));
     }
@@ -368,8 +396,12 @@ mod tests {
     #[test]
     fn test_get_empty_cells() {
         let mut board = Board::new(2);
-        let _ = board.play(Coords { row: 0, column: 0 }, Color::BLACK);
-        let _ = board.play(Coords { row: 1, column: 1 }, Color::WHITE);
+        board
+            .play(Coords { row: 0, column: 0 }, Color::BLACK)
+            .unwrap();
+        board
+            .play(Coords { row: 1, column: 1 }, Color::WHITE)
+            .unwrap();
 
         assert_eq!(
             board.get_empty_cells(),
