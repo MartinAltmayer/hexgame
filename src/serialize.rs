@@ -19,6 +19,7 @@ pub trait Serialization: Sized {
 }
 
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct StoredGame {
     size: u8,
     current_player: u8,
@@ -100,12 +101,11 @@ mod tests {
 
         let data = game.save_to_json();
 
-        // TODO: camel case
         assert_eq!(
             data,
             json!({
                 "size": 2,
-                "current_player": 0,
+                "currentPlayer": 0,
                 "cells": [[Value::Null, 0], [1, Value::Null]]
             })
         );
@@ -115,7 +115,7 @@ mod tests {
     fn test_deserialize() {
         let data = json!({
             "size": 2,
-            "current_player": 0,
+            "currentPlayer": 0,
             "cells": [[Value::Null, 0], [1, Value::Null]]
         });
 
@@ -142,14 +142,14 @@ mod tests {
 
         let data = game.save_to_json();
 
-        assert_eq!(data["current_player"], 1);
+        assert_eq!(data["currentPlayer"], 1);
     }
 
     #[test]
     fn test_deserialize_white_as_current_player() {
         let data = json!({
             "size": 2,
-            "current_player": 1,
+            "currentPlayer": 1,
             "cells": [[0, Value::Null], [Value::Null, Value::Null]],
         });
 
