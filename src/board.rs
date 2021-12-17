@@ -1,8 +1,8 @@
 use crate::coords::Coords;
+use crate::errors::{InvalidBoard, InvalidMove};
 use crate::square_array::SquareArray;
 use crate::union_find::UnionFind;
-use std::error;
-use std::fmt;
+use std::convert::TryInto;
 
 // Neighbor calculations assume size >= 2
 pub const MIN_BOARD_SIZE: u8 = 2;
@@ -49,18 +49,30 @@ pub struct Board {
 }
 
 impl Board {
-    pub fn new(size: u8) -> Board {
-        assert!(
-            MIN_BOARD_SIZE <= size && size <= MAX_BOARD_SIZE,
-            "Size must be between {} and {}",
-            MIN_BOARD_SIZE,
-            MAX_BOARD_SIZE
-        );
-        Board {
+    pub fn new(size: u8) -> Self {
+        check_board_size(size).expect("Invalid size");
+        Self {
             cells: SquareArray::new(size),
             top_parent: Position::TOP,
             left_parent: Position::LEFT,
         }
+    }
+
+    pub fn from_cells(cells: Vec<Vec<Option<Color>>>) -> Result<Self, InvalidBoard> {
+        let size = check_board_size(cells.len())?;
+        let mut board = Self::new(size);
+
+        for (row, cells_in_row) in (0..size).zip(cells) {
+            if cells_in_row.len() != size as usize {
+                return Err(InvalidBoard::NotSquare(row as u8, size));
+            }
+            for (column, cell) in (0..size).zip(cells_in_row) {
+                if let Some(color) = cell {
+                    board.play(Coords { row, column }, color).unwrap();
+                }
+            }
+        }
+        Ok(board)
     }
 
     pub fn size(&self) -> u8 {
@@ -194,38 +206,81 @@ impl UnionFind<Position> for Board {
     }
 }
 
-#[derive(Debug, PartialEq)]
-pub enum InvalidMove {
-    GameOver,
-    OutOfBounds(Coords),
-    CellOccupied(Coords),
+fn check_board_size<T: Copy + TryInto<u8> + Into<usize>>(input: T) -> Result<u8, InvalidBoard> {
+    input
+        .try_into()
+        .ok()
+        .filter(|&size| MIN_BOARD_SIZE <= size && size <= MAX_BOARD_SIZE)
+        .ok_or(InvalidBoard::SizeOutOfBounds(
+            input.into(),
+            MIN_BOARD_SIZE,
+            MAX_BOARD_SIZE,
+        ))
 }
-
-impl fmt::Display for InvalidMove {
-    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        match self {
-            InvalidMove::GameOver => write!(f, "Game has ended"),
-            InvalidMove::OutOfBounds(coords) => {
-                write!(f, "Coordinates {} are out of bounds", coords)
-            }
-            InvalidMove::CellOccupied(coords) => {
-                write!(f, "Cell {} is already occupied", coords)
-            }
-        }
-    }
-}
-
-impl error::Error for InvalidMove {}
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn test_constructor() {
+    fn test_new() {
         let board = Board::new(3);
         assert_eq!(board.size(), 3);
         assert!(board.get_color(Coords { row: 0, column: 0 }).is_none());
+    }
+
+    #[test]
+    fn test_from_cells() {
+        let cells = vec![
+            vec![None, Some(Color::BLACK)],
+            vec![Some(Color::WHITE), None],
+        ];
+        let board = Board::from_cells(cells).unwrap();
+        assert_eq!(board.get_color(Coords { row: 0, column: 0 }), None);
+        assert_eq!(
+            board.get_color(Coords { row: 0, column: 1 }),
+            Some(Color::BLACK)
+        );
+        assert_eq!(
+            board.get_color(Coords { row: 1, column: 0 }),
+            Some(Color::WHITE)
+        );
+        assert_eq!(board.get_color(Coords { row: 1, column: 1 }), None);
+    }
+
+    #[test]
+    fn test_from_cells_with_size_too_small() {
+        let cells = vec![vec![Some(Color::BLACK)]];
+        let error = Board::from_cells(cells).err().unwrap();
+        assert_eq!(
+            error,
+            InvalidBoard::SizeOutOfBounds(1, MIN_BOARD_SIZE, MAX_BOARD_SIZE)
+        );
+    }
+
+    #[test]
+    fn test_from_cells_with_size_too_large() {
+        let invalid_size = MAX_BOARD_SIZE as usize + 1;
+        let row: Vec<Option<Color>> = vec![None; invalid_size];
+        let mut cells = vec![];
+        for _ in 0..invalid_size {
+            cells.push(row.clone());
+        }
+        let error = Board::from_cells(cells).err().unwrap();
+        assert_eq!(
+            error,
+            InvalidBoard::SizeOutOfBounds(invalid_size, MIN_BOARD_SIZE, MAX_BOARD_SIZE)
+        );
+    }
+
+    #[test]
+    fn test_from_cells_with_non_square_board() {
+        let cells = vec![
+            vec![None, Some(Color::BLACK)],
+            vec![Some(Color::WHITE), None, None],
+        ];
+        let error = Board::from_cells(cells).err().unwrap();
+        assert_eq!(error, InvalidBoard::NotSquare(1, 2));
     }
 
     #[test]

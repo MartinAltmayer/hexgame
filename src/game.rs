@@ -1,5 +1,6 @@
-use crate::board::{Board, Color, InvalidMove, Position};
+use crate::board::{Board, Color, Position};
 use crate::coords::Coords;
+use crate::errors::InvalidMove;
 use crate::union_find::UnionFind;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
