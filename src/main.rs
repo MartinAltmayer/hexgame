@@ -7,14 +7,8 @@ use std::str::FromStr;
 
 const DEFAULT_SIZE: u8 = 9;
 
-fn main() {
-    let size = match read_size() {
-        Ok(size) => size,
-        Err(error) => {
-            println!("Error: {}", error);
-            return;
-        }
-    };
+fn main() -> std::io::Result<()> {
+    let size = read_size()?;
 
     let mut game = Game::new(size);
     println!("{}", &game.board);
@@ -22,20 +16,12 @@ fn main() {
     loop {
         match game.status {
             Status::Ongoing => {
-                let result = request_coords(&game).and_then(|coords| play(&mut game, coords));
-
-                match result {
-                    Ok(_) => {
-                        println!("{}", &game.board);
-                    }
-                    Err(error) => {
-                        println!("Error: {}", error);
-                    }
-                }
+                let coords = request_coords(&game)?;
+                play(&mut game, coords)?;
             }
             Status::Finished(color) => {
                 println!("Game Over! The winner is {:?}", color);
-                return;
+                return Ok(());
             }
         }
     }
