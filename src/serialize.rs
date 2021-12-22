@@ -23,14 +23,14 @@ pub trait Serialization: Sized {
 struct StoredGame {
     size: u8,
     current_player: u8,
-    cells: Vec<Vec<Option<u8>>>,
+    cells: Vec<Vec<u8>>,
 }
 
 impl Serialization for Game {
     fn save_to_json(&self) -> Value {
         let stored_game = StoredGame {
             size: self.board.size(),
-            current_player: serialize_color(self.current_player),
+            current_player: serialize_color(&Some(self.current_player)),
             cells: store_cells(&self.board.to_cells()),
         };
 
@@ -41,44 +41,49 @@ impl Serialization for Game {
         let stored_game: StoredGame = serde_json::from_value(value)?;
         let cells = load_cells(&stored_game.cells)?;
         let board = Board::from_cells(cells).map_err(invalid_data)?;
+        let current_player = deserialize_color(&stored_game.current_player)?;
+        if let None = current_player {
+            return Err(invalid_data("Current player is 0"));
+        }
 
         Ok(Game {
             board,
-            current_player: deserialize_color(stored_game.current_player)?,
+            // current player doesn't matter if game has finished.
+            current_player: current_player.unwrap(),
             status: Status::Ongoing, // TODO
         })
     }
 }
 
-fn store_cells(cells: &Vec<Vec<Option<Color>>>) -> Vec<Vec<Option<u8>>> {
+fn store_cells(cells: &Vec<Vec<Option<Color>>>) -> Vec<Vec<u8>> {
     cells.iter().map(store_row).collect()
 }
 
-fn store_row(row: &Vec<Option<Color>>) -> Vec<Option<u8>> {
-    row.iter().map(|&cell| cell.map(serialize_color)).collect()
+fn store_row(row: &Vec<Option<Color>>) -> Vec<u8> {
+    row.iter().map(serialize_color).collect()
 }
 
-fn load_cells(cells: &Vec<Vec<Option<u8>>>) -> Result<Vec<Vec<Option<Color>>>> {
+fn load_cells(cells: &Vec<Vec<u8>>) -> Result<Vec<Vec<Option<Color>>>> {
     cells.iter().map(load_row).collect()
 }
 
-fn load_row(row: &Vec<Option<u8>>) -> Result<Vec<Option<Color>>> {
-    row.iter()
-        .map(|option| option.map(deserialize_color).transpose())
-        .collect()
+fn load_row(row: &Vec<u8>) -> Result<Vec<Option<Color>>> {
+    row.iter().map(deserialize_color).collect()
 }
 
-fn serialize_color(color: Color) -> u8 {
+fn serialize_color(color: &Option<Color>) -> u8 {
     match color {
-        Color::BLACK => 0,
-        Color::WHITE => 1,
+        None => 0,
+        Some(Color::BLACK) => 1,
+        Some(Color::WHITE) => 2,
     }
 }
 
-fn deserialize_color(input: u8) -> Result<Color> {
+fn deserialize_color(input: &u8) -> Result<Option<Color>> {
     match input {
-        0 => Ok(Color::BLACK),
-        1 => Ok(Color::WHITE),
+        0 => Ok(None),
+        1 => Ok(Some(Color::BLACK)),
+        2 => Ok(Some(Color::WHITE)),
         _ => Err(invalid_data(format!("Invalid color {}", input))),
     }
 }
@@ -105,8 +110,8 @@ mod tests {
             data,
             json!({
                 "size": 2,
-                "currentPlayer": 0,
-                "cells": [[Value::Null, 0], [1, Value::Null]]
+                "currentPlayer": 1,
+                "cells": [[0, 1], [2, 0]]
             })
         );
     }
@@ -115,8 +120,8 @@ mod tests {
     fn test_deserialize() {
         let data = json!({
             "size": 2,
-            "currentPlayer": 0,
-            "cells": [[Value::Null, 0], [1, Value::Null]]
+            "currentPlayer": 1,
+            "cells": [[0, 1], [2, 0]]
         });
 
         let game = Game::load_from_json(data).unwrap();
@@ -142,15 +147,15 @@ mod tests {
 
         let data = game.save_to_json();
 
-        assert_eq!(data["currentPlayer"], 1);
+        assert_eq!(data["currentPlayer"], 2);
     }
 
     #[test]
     fn test_deserialize_white_as_current_player() {
         let data = json!({
             "size": 2,
-            "currentPlayer": 1,
-            "cells": [[0, Value::Null], [Value::Null, Value::Null]],
+            "currentPlayer": 2,
+            "cells": [[1, 0], [0, 0]],
         });
 
         let game = Game::load_from_json(data).unwrap();
