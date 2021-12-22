@@ -74,16 +74,16 @@ fn load_row(row: &Vec<u8>) -> Result<Vec<Option<Color>>> {
 fn serialize_color(color: &Option<Color>) -> u8 {
     match color {
         None => 0,
-        Some(Color::BLACK) => 1,
-        Some(Color::WHITE) => 2,
+        Some(Color::Black) => 1,
+        Some(Color::White) => 2,
     }
 }
 
 fn deserialize_color(input: &u8) -> Result<Option<Color>> {
     match input {
         0 => Ok(None),
-        1 => Ok(Some(Color::BLACK)),
-        2 => Ok(Some(Color::WHITE)),
+        1 => Ok(Some(Color::Black)),
+        2 => Ok(Some(Color::White)),
         _ => Err(invalid_data(format!("Invalid color {}", input))),
     }
 }
@@ -127,15 +127,15 @@ mod tests {
         let game = Game::load_from_json(data).unwrap();
 
         assert_eq!(game.board.size(), 2);
-        assert_eq!(game.current_player, Color::BLACK);
+        assert_eq!(game.current_player, Color::Black);
         assert_eq!(game.board.get_color(Coords { row: 0, column: 0 }), None);
         assert_eq!(
             game.board.get_color(Coords { row: 0, column: 1 }),
-            Some(Color::BLACK)
+            Some(Color::Black)
         );
         assert_eq!(
             game.board.get_color(Coords { row: 1, column: 0 }),
-            Some(Color::WHITE)
+            Some(Color::White)
         );
         assert_eq!(game.board.get_color(Coords { row: 1, column: 1 }), None);
     }
@@ -160,7 +160,7 @@ mod tests {
 
         let game = Game::load_from_json(data).unwrap();
 
-        assert_eq!(game.current_player, Color::WHITE);
+        assert_eq!(game.current_player, Color::White);
     }
 
     #[test]

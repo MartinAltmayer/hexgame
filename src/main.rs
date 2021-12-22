@@ -73,8 +73,8 @@ fn check_size(size: u8) -> std::io::Result<u8> {
 
 fn request_coords(game: &Game) -> Result<Coords, io::Error> {
     let player = match game.current_player {
-        Color::BLACK => "BLACK",
-        Color::WHITE => "WHITE",
+        Color::Black => "BLACK",
+        Color::White => "WHITE",
     };
     print!(
         "{}: Please enter the coordinates for your next move: ",

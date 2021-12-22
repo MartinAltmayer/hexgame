@@ -48,8 +48,8 @@ fn char_for_color(color: Option<Color>) -> char {
     match color {
         // Unfortunately, the Unicode hexagon characters ⬢ and ⬡
         // are displayed as 1,5-width in the terminals that I've tried.
-        Some(Color::BLACK) => '●',
-        Some(Color::WHITE) => '○',
+        Some(Color::Black) => '●',
+        Some(Color::White) => '○',
         None => '.',
     }
 }
@@ -62,8 +62,8 @@ mod test {
     #[test]
     fn test_write_board() {
         let mut board = Board::new(3);
-        board.play(Coords { row: 0, column: 0 }, Color::BLACK).ok();
-        board.play(Coords { row: 2, column: 1 }, Color::WHITE).ok();
+        board.play(Coords { row: 0, column: 0 }, Color::Black).ok();
+        board.play(Coords { row: 2, column: 1 }, Color::White).ok();
 
         let mut output = String::new();
         write!(&mut output, "{}", &board).ok();

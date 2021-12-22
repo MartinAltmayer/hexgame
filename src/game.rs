@@ -20,15 +20,15 @@ impl Game {
     pub fn new(size: u8) -> Game {
         Game {
             board: Board::new(size),
-            current_player: Color::BLACK,
+            current_player: Color::Black,
             status: Status::Ongoing,
         }
     }
 
     pub fn get_edges(color: Color) -> (Position, Position) {
         match color {
-            Color::BLACK => (Position::TOP, Position::BOTTOM),
-            Color::WHITE => (Position::LEFT, Position::RIGHT),
+            Color::Black => (Position::Top, Position::Bottom),
+            Color::White => (Position::Left, Position::Right),
         }
     }
 
@@ -62,9 +62,9 @@ mod test {
         let coord2 = Coords { row: 2, column: 1 };
         game.play(coord1).ok();
         game.play(coord2).ok();
-        assert_eq!(game.board.get_color(coord1).unwrap(), Color::BLACK);
-        assert_eq!(game.board.get_color(coord2).unwrap(), Color::WHITE);
-        assert_eq!(game.current_player, Color::BLACK);
+        assert_eq!(game.board.get_color(coord1).unwrap(), Color::Black);
+        assert_eq!(game.board.get_color(coord2).unwrap(), Color::White);
+        assert_eq!(game.current_player, Color::Black);
         assert_eq!(game.status, Status::Ongoing);
     }
 
@@ -91,7 +91,7 @@ mod test {
         let _ = game.play(Coords { row: 2, column: 0 }); // white's vertical connection complete
         let _ = game.play(Coords { row: 2, column: 1 }); // black wins here
 
-        assert_eq!(game.status, Status::Finished(Color::BLACK));
+        assert_eq!(game.status, Status::Finished(Color::Black));
     }
 
     #[test]
@@ -104,6 +104,6 @@ mod test {
         let _ = game.play(Coords { row: 0, column: 2 }); // black's horizontal connection complete
         let _ = game.play(Coords { row: 1, column: 2 }); // white wins here
 
-        assert_eq!(game.status, Status::Finished(Color::WHITE));
+        assert_eq!(game.status, Status::Finished(Color::White));
     }
 }
