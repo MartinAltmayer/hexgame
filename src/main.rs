@@ -61,7 +61,7 @@ fn read_size() -> std::io::Result<u8> {
 }
 
 fn check_size(size: u8) -> std::io::Result<u8> {
-    if size < MIN_BOARD_SIZE || size > MAX_BOARD_SIZE {
+    if (MIN_BOARD_SIZE..=MAX_BOARD_SIZE).contains(&size) {
         Err(invalid_input(&format!(
             "Size must be between {} and {}",
             MIN_BOARD_SIZE, MAX_BOARD_SIZE

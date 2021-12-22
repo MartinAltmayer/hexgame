@@ -2,7 +2,6 @@ use crate::board::Board;
 use crate::board::Color;
 use crate::game::{Game, Status};
 use serde::{Deserialize, Serialize};
-use serde_json;
 use serde_json::Value;
 use std::io::{Error, ErrorKind, Result};
 
@@ -42,7 +41,7 @@ impl Serialization for Game {
         let cells = load_cells(&stored_game.cells)?;
         let board = Board::from_cells(cells).map_err(invalid_data)?;
         let current_player = deserialize_color(&stored_game.current_player)?;
-        if let None = current_player {
+        if current_player.is_none() {
             return Err(invalid_data("Current player is 0"));
         }
 

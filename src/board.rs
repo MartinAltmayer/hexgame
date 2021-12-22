@@ -175,7 +175,7 @@ impl Board {
         for row in 0..self.size() {
             for column in 0..self.size() {
                 let coords = Coords { row, column };
-                if let None = self.get_color(coords) {
+                if self.get_color(coords).is_none() {
                     result.push(coords);
                 }
             }
@@ -223,11 +223,7 @@ fn check_board_size<T: Copy + TryInto<u8> + Into<usize>>(input: T) -> Result<u8,
         .try_into()
         .ok()
         .filter(|&size| MIN_BOARD_SIZE <= size && size <= MAX_BOARD_SIZE)
-        .ok_or(InvalidBoard::SizeOutOfBounds(
-            input.into(),
-            MIN_BOARD_SIZE,
-            MAX_BOARD_SIZE,
-        ))
+        .ok_or_else(|| InvalidBoard::SizeOutOfBounds(input.into(), MIN_BOARD_SIZE, MAX_BOARD_SIZE))
 }
 
 #[cfg(test)]

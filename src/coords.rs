@@ -21,7 +21,7 @@ impl std::str::FromStr for Coords {
     type Err = ParseCoordsError;
 
     fn from_str(string: &str) -> Result<Self, Self::Err> {
-        let column = string.chars().nth(0).and_then(parse_column_char);
+        let column = string.chars().next().and_then(parse_column_char);
         let row = string
             .get(1..)
             .and_then(|s| s.parse::<u8>().ok())
@@ -38,15 +38,15 @@ impl std::str::FromStr for Coords {
 }
 
 pub fn parse_column_char(c: char) -> Option<u8> {
-    if 'a' <= c && c <= 'z' {
-        Some((c as u8) - ('a' as u8))
+    if ('a'..='z').contains(&c) {
+        Some((c as u8) - b'a')
     } else {
         None
     }
 }
 
 pub fn to_column_char(column: u8) -> char {
-    (('a' as u8) + column) as char
+    (b'a' + column) as char
 }
 
 impl fmt::Display for Coords {

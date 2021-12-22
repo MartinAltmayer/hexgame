@@ -8,7 +8,7 @@ impl fmt::Display for Board {
         write_column_labels(f, self.size(), 0)?;
 
         for row in 0..self.size() {
-            write_row(f, &self, row)?;
+            write_row(f, self, row)?;
         }
 
         write_column_labels(f, self.size(), self.size() + 1)
@@ -22,7 +22,7 @@ fn write_column_labels(f: &mut fmt::Formatter, board_size: u8, indent: u8) -> fm
         write!(f, " {} ", to_column_char(column))?;
     }
 
-    writeln!(f, "")
+    writeln!(f)
 }
 
 fn write_row(f: &mut fmt::Formatter, board: &Board, row: u8) -> fmt::Result {
@@ -31,7 +31,7 @@ fn write_row(f: &mut fmt::Formatter, board: &Board, row: u8) -> fmt::Result {
 
     for column in 0..board.size() {
         if column > 0 {
-            write!(f, "{}", "  ")?;
+            write!(f, "  ")?;
         }
         let color = board.get_color(Coords { row, column });
         write!(f, "{}", char_for_color(color))?;
