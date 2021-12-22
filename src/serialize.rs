@@ -54,18 +54,20 @@ impl Serialization for Game {
     }
 }
 
-fn store_cells(cells: &Vec<Vec<Option<Color>>>) -> Vec<Vec<u8>> {
+fn store_cells(cells: &[Vec<Option<Color>>]) -> Vec<Vec<u8>> {
     cells.iter().map(store_row).collect()
 }
 
+#[allow(clippy::ptr_arg)]
 fn store_row(row: &Vec<Option<Color>>) -> Vec<u8> {
     row.iter().map(serialize_color).collect()
 }
 
-fn load_cells(cells: &Vec<Vec<u8>>) -> Result<Vec<Vec<Option<Color>>>> {
+fn load_cells(cells: &[Vec<u8>]) -> Result<Vec<Vec<Option<Color>>>> {
     cells.iter().map(load_row).collect()
 }
 
+#[allow(clippy::ptr_arg)]
 fn load_row(row: &Vec<u8>) -> Result<Vec<Option<Color>>> {
     row.iter().map(deserialize_color).collect()
 }
