@@ -39,9 +39,9 @@ impl Game {
 
         self.board.play(coords, self.current_player)?;
 
-        let edges = Game::get_edges(self.current_player);
+        let (start_edge, end_edge) = Game::get_edges(self.current_player);
 
-        if self.board.is_in_same_set(edges.0, edges.1) {
+        if self.board.is_in_same_set(start_edge, end_edge) {
             self.status = Status::Finished(self.current_player);
         } else {
             self.current_player = self.current_player.opponent_color();

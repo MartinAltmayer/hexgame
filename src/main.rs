@@ -18,6 +18,7 @@ fn main() -> std::io::Result<()> {
             Status::Ongoing => {
                 let coords = request_coords(&game)?;
                 play(&mut game, coords)?;
+                println!("{}", &game.board);
             }
             Status::Finished(color) => {
                 println!("Game Over! The winner is {:?}", color);
@@ -30,24 +31,20 @@ fn main() -> std::io::Result<()> {
 fn read_size() -> std::io::Result<u8> {
     let args: Vec<String> = env::args().collect();
 
-    if args.len() > 2 {
-        return Err(invalid_input(
-            "Expected at most one command line argument - the size of the board",
-        ));
-    }
-
-    if args.len() == 2 {
-        args[1]
+    match args.as_slice() {
+        [] | [_] => Ok(DEFAULT_SIZE),
+        [_, size] => size
             .parse::<u8>()
-            .map_err(|e| invalid_input(&e.to_string()))
-            .and_then(check_size)
-    } else {
-        Ok(DEFAULT_SIZE)
+            .map_err(invalid_input)
+            .and_then(check_size),
+        _ => Err(invalid_input(
+            "Expected at most one command line argument - the size of the board",
+        )),
     }
 }
 
 fn check_size(size: u8) -> std::io::Result<u8> {
-    if size < MIN_BOARD_SIZE || size > MAX_BOARD_SIZE {
+    if !(MIN_BOARD_SIZE..=MAX_BOARD_SIZE).contains(&size) {
         Err(invalid_input(&format!(
             "Size must be between {} and {}",
             MIN_BOARD_SIZE, MAX_BOARD_SIZE
@@ -68,18 +65,17 @@ fn request_coords(game: &Game) -> Result<Coords, io::Error> {
     );
     io::stdout().flush()?;
 
-    read_coords(&mut io::stdin().lock(), game.board.size())
+    read_coords(io::stdin().lock(), game.board.size())
 }
 
-fn read_coords<Reader: io::BufRead>(
-    reader: &mut Reader,
-    board_size: u8,
-) -> Result<Coords, io::Error> {
-    let mut input = String::new();
-    reader.read_line(&mut input).expect("Failed to read line");
+fn read_coords<Reader: io::BufRead>(reader: Reader, board_size: u8) -> std::io::Result<Coords> {
+    let input = reader
+        .lines()
+        .next()
+        .ok_or_else(|| invalid_input("Failed to read line"))??;
 
     Coords::from_str(input.trim())
-        .map_err(|error| invalid_input(&error.to_string()))
+        .map_err(invalid_input)
         .and_then(|coords| {
             if coords.is_on_board_with_size(board_size) {
                 Ok(coords)
@@ -94,12 +90,11 @@ fn read_coords<Reader: io::BufRead>(
 }
 
 fn play(game: &mut Game, coords: Coords) -> Result<(), io::Error> {
-    game.play(coords)
-        .map_err(|error| invalid_input(&error.to_string()))
+    game.play(coords).map_err(invalid_input)
 }
 
-fn invalid_input(message: &str) -> io::Error {
-    io::Error::new(io::ErrorKind::InvalidInput, message)
+fn invalid_input(message: impl ToString) -> io::Error {
+    io::Error::new(io::ErrorKind::InvalidInput, message.to_string())
 }
 
 #[cfg(test)]

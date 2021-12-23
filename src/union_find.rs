@@ -84,9 +84,9 @@ mod test {
 
     fn build_collection() -> Collection {
         // Each item has itself as parent, i.e. all sets have a single element.
-        return Collection {
+        Collection {
             parents: vec![0, 1, 2, 3],
-        };
+        }
     }
 
     #[test]

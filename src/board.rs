@@ -62,13 +62,15 @@ impl Board {
         let size = check_board_size(cells.len())?;
         let mut board = Self::new(size);
 
-        for (row, cells_in_row) in (0..size).zip(cells) {
+        for (row, cells_in_row) in cells.into_iter().enumerate() {
             if cells_in_row.len() != size as usize {
                 return Err(InvalidBoard::NotSquare(row as u8, size));
             }
-            for (column, cell) in (0..size).zip(cells_in_row) {
+            for (column, cell) in cells_in_row.into_iter().enumerate() {
                 if let Some(color) = cell {
-                    board.play(Coords { row, column }, color).unwrap();
+                    board
+                        .play(Coords::new(row as u8, column as u8), color)
+                        .unwrap();
                 }
             }
         }
@@ -76,15 +78,13 @@ impl Board {
     }
 
     pub fn to_cells(&self) -> Vec<Vec<Option<Color>>> {
-        let mut result = vec![];
-        for row in 0..self.size() {
-            let mut cells_in_row = vec![];
-            for column in 0..self.size() {
-                cells_in_row.push(self.get_color(Coords { row, column }));
-            }
-            result.push(cells_in_row);
-        }
-        result
+        (0..self.size())
+            .map(|row| {
+                (0..self.size())
+                    .map(|column| self.get_color(Coords::new(row, column)))
+                    .collect()
+            })
+            .collect()
     }
 
     pub fn size(&self) -> u8 {
@@ -170,18 +170,10 @@ impl Board {
         Ok(())
     }
 
-    pub fn get_empty_cells(&self) -> Vec<Coords> {
-        let mut result = vec![];
-        for row in 0..self.size() {
-            for column in 0..self.size() {
-                let coords = Coords { row, column };
-                if let None = self.get_color(coords) {
-                    result.push(coords);
-                }
-            }
-        }
-
-        result
+    pub fn get_empty_cells(&self) -> impl Iterator<Item = Coords> + '_ {
+        (0..self.size())
+            .flat_map(|row| (0..self.size()).map(move |column| Coords::new(row, column)))
+            .filter(|coord| self.get_color(*coord).is_none())
     }
 }
 
@@ -223,11 +215,7 @@ fn check_board_size<T: Copy + TryInto<u8> + Into<usize>>(input: T) -> Result<u8,
         .try_into()
         .ok()
         .filter(|&size| MIN_BOARD_SIZE <= size && size <= MAX_BOARD_SIZE)
-        .ok_or(InvalidBoard::SizeOutOfBounds(
-            input.into(),
-            MIN_BOARD_SIZE,
-            MAX_BOARD_SIZE,
-        ))
+        .ok_or_else(|| InvalidBoard::SizeOutOfBounds(input.into(), MIN_BOARD_SIZE, MAX_BOARD_SIZE))
 }
 
 #[cfg(test)]
@@ -404,7 +392,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(
-            board.get_empty_cells(),
+            board.get_empty_cells().collect::<Vec<_>>(),
             vec![Coords { row: 0, column: 1 }, Coords { row: 1, column: 0 },]
         );
     }

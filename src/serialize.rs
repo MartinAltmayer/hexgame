@@ -42,32 +42,30 @@ impl Serialization for Game {
         let cells = load_cells(&stored_game.cells)?;
         let board = Board::from_cells(cells).map_err(invalid_data)?;
         let current_player = deserialize_color(&stored_game.current_player)?;
-        if let None = current_player {
-            return Err(invalid_data("Current player is 0"));
-        }
+        let current_player = current_player.ok_or_else(|| invalid_data("Current player is 0"))?;
 
         Ok(Game {
             board,
             // current player doesn't matter if game has finished.
-            current_player: current_player.unwrap(),
+            current_player,
             status: Status::Ongoing, // TODO
         })
     }
 }
 
-fn store_cells(cells: &Vec<Vec<Option<Color>>>) -> Vec<Vec<u8>> {
-    cells.iter().map(store_row).collect()
+fn store_cells(cells: &[Vec<Option<Color>>]) -> Vec<Vec<u8>> {
+    cells.iter().map(|v| store_row(v)).collect()
 }
 
-fn store_row(row: &Vec<Option<Color>>) -> Vec<u8> {
+fn store_row(row: &[Option<Color>]) -> Vec<u8> {
     row.iter().map(serialize_color).collect()
 }
 
-fn load_cells(cells: &Vec<Vec<u8>>) -> Result<Vec<Vec<Option<Color>>>> {
-    cells.iter().map(load_row).collect()
+fn load_cells(cells: &[Vec<u8>]) -> Result<Vec<Vec<Option<Color>>>> {
+    cells.iter().map(|v| load_row(v)).collect()
 }
 
-fn load_row(row: &Vec<u8>) -> Result<Vec<Option<Color>>> {
+fn load_row(row: &[u8]) -> Result<Vec<Option<Color>>> {
     row.iter().map(deserialize_color).collect()
 }
 
