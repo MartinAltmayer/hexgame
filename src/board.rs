@@ -3,6 +3,8 @@ use crate::errors::{InvalidBoard, InvalidMove};
 use crate::square_array::SquareArray;
 use crate::union_find::UnionFind;
 use std::convert::TryInto;
+use std::iter;
+use std::iter::Iterator;
 
 // Neighbor calculations assume size >= 2
 pub const MIN_BOARD_SIZE: u8 = 2;
@@ -103,42 +105,52 @@ impl Board {
         }
     }
 
-    fn get_neighbors(&self, index: u16) -> Vec<Position> {
-        // This method guarantees that neighbors are returned in clock-wise order, starting with the left neighbor.
-        let mut neighbors = Vec::new();
+    fn get_neighbors(&self, index: u16) -> impl Iterator<Item = Position> {
         let size: u16 = self.size().into();
 
-        if index % size == 0 {
-            neighbors.push(Position::Left);
+        let left_neighbor = if index % size == 0 {
+            Position::Left
         } else {
-            neighbors.push(Position::Index(index - 1));
-        }
+            Position::Index(index - 1)
+        };
 
-        if index < size {
-            neighbors.push(Position::Top);
+        let top_left_neighbor = if index < size {
+            Position::Top
         } else {
-            neighbors.push(Position::Index(index - size));
-            if index % size < size - 1 {
-                neighbors.push(Position::Index(index - size + 1));
-            }
-        }
+            Position::Index(index - size)
+        };
 
-        if index % size == size - 1 {
-            neighbors.push(Position::Right);
+        let top_right_neighbor = if index >= size && index % size < size - 1 {
+            Some(Position::Index(index - size + 1))
         } else {
-            neighbors.push(Position::Index(index + 1));
-        }
+            None
+        };
 
-        if index >= size * (size - 1) {
-            neighbors.push(Position::Bottom);
+        let right_neighbor = if index % size == size - 1 {
+            Position::Right
         } else {
-            neighbors.push(Position::Index(index + size));
-            if index % size > 0 {
-                neighbors.push(Position::Index(index + size - 1))
-            }
-        }
+            Position::Index(index + 1)
+        };
 
-        neighbors
+        let bottom_right_neighbor = if index >= size * (size - 1) {
+            Position::Bottom
+        } else {
+            Position::Index(index + size)
+        };
+
+        let bottom_left_neighbor = if index < size * (size - 1) && index % size > 0 {
+            Some(Position::Index(index + size - 1))
+        } else {
+            None
+        };
+
+        iter::empty()
+            .chain(iter::once(left_neighbor))
+            .chain(iter::once(top_left_neighbor))
+            .chain(top_right_neighbor)
+            .chain(iter::once(right_neighbor))
+            .chain(iter::once(bottom_right_neighbor))
+            .chain(bottom_left_neighbor)
     }
 
     pub fn play(&mut self, coords: Coords, color: Color) -> Result<(), InvalidMove> {
@@ -412,7 +424,7 @@ mod test_neighbors {
 
     fn check_neighbors(board: &Board, row: u8, column: u8, expected: &[Position]) {
         let index = board.cells.index_from_coords(Coords { row, column });
-        let neighbors = board.get_neighbors(index);
+        let neighbors: Vec<Position> = board.get_neighbors(index).collect();
         assert_eq!(neighbors, expected);
     }
 
