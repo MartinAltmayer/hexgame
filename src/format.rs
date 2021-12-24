@@ -1,7 +1,7 @@
 use std::fmt;
 
 use crate::board::{Board, Color};
-use crate::coords::{to_column_char, Coords};
+use crate::coords::{to_column_char, CoordValue, Coords};
 
 impl fmt::Display for Board {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
@@ -11,11 +11,15 @@ impl fmt::Display for Board {
             write_row(f, self, row)?;
         }
 
-        write_column_labels(f, self.size(), self.size() + 1)
+        write_column_labels(f, self.size(), (self.size() + 1) as usize)
     }
 }
 
-fn write_column_labels(f: &mut fmt::Formatter, board_size: u8, indent: u8) -> fmt::Result {
+fn write_column_labels(
+    f: &mut fmt::Formatter,
+    board_size: CoordValue,
+    indent: usize,
+) -> fmt::Result {
     write_indent(f, indent)?;
 
     for column in 0..board_size {
@@ -25,8 +29,8 @@ fn write_column_labels(f: &mut fmt::Formatter, board_size: u8, indent: u8) -> fm
     writeln!(f)
 }
 
-fn write_row(f: &mut fmt::Formatter, board: &Board, row: u8) -> fmt::Result {
-    write_indent(f, row)?;
+fn write_row(f: &mut fmt::Formatter, board: &Board, row: CoordValue) -> fmt::Result {
+    write_indent(f, row as usize)?;
     write!(f, "{}\\", row + 1)?;
 
     for column in 0..board.size() {
@@ -40,8 +44,8 @@ fn write_row(f: &mut fmt::Formatter, board: &Board, row: u8) -> fmt::Result {
     writeln!(f, "\\{}", row + 1)
 }
 
-fn write_indent(f: &mut fmt::Formatter, length: u8) -> fmt::Result {
-    write!(f, "{}", " ".repeat(length.into()))
+fn write_indent(f: &mut fmt::Formatter, length: usize) -> fmt::Result {
+    write!(f, "{}", " ".repeat(length))
 }
 
 fn char_for_color(color: Option<Color>) -> char {

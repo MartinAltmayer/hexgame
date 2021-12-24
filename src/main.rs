@@ -1,11 +1,11 @@
-use hexgame::{Color, Coords, MAX_BOARD_SIZE, MIN_BOARD_SIZE};
+use hexgame::{Color, CoordValue, Coords, MAX_BOARD_SIZE, MIN_BOARD_SIZE};
 use hexgame::{Game, Status};
 use std::env;
 use std::io;
 use std::io::Write;
 use std::str::FromStr;
 
-const DEFAULT_SIZE: u8 = 9;
+const DEFAULT_SIZE: CoordValue = 9;
 
 fn main() {
     let size = match read_size() {
@@ -41,7 +41,7 @@ fn main() {
     }
 }
 
-fn read_size() -> std::io::Result<u8> {
+fn read_size() -> std::io::Result<CoordValue> {
     let args: Vec<String> = env::args().collect();
 
     if args.len() > 2 {
@@ -52,7 +52,7 @@ fn read_size() -> std::io::Result<u8> {
 
     if args.len() == 2 {
         args[1]
-            .parse::<u8>()
+            .parse::<CoordValue>()
             .map_err(|e| invalid_input(&e.to_string()))
             .and_then(check_size)
     } else {
@@ -60,7 +60,7 @@ fn read_size() -> std::io::Result<u8> {
     }
 }
 
-fn check_size(size: u8) -> std::io::Result<u8> {
+fn check_size(size: CoordValue) -> std::io::Result<CoordValue> {
     if (MIN_BOARD_SIZE..=MAX_BOARD_SIZE).contains(&size) {
         Err(invalid_input(&format!(
             "Size must be between {} and {}",
@@ -87,7 +87,7 @@ fn request_coords(game: &Game) -> Result<Coords, io::Error> {
 
 fn read_coords<Reader: io::BufRead>(
     reader: &mut Reader,
-    board_size: u8,
+    board_size: CoordValue,
 ) -> Result<Coords, io::Error> {
     let mut input = String::new();
     reader.read_line(&mut input).expect("Failed to read line");

@@ -1,18 +1,20 @@
 use std::error;
 use std::fmt;
 
+pub type CoordValue = u8;
+
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct Coords {
-    pub row: u8,
-    pub column: u8,
+    pub row: CoordValue,
+    pub column: CoordValue,
 }
 
 impl Coords {
-    pub fn new(row: u8, column: u8) -> Self {
+    pub fn new(row: CoordValue, column: CoordValue) -> Self {
         Self { row, column }
     }
 
-    pub fn is_on_board_with_size(&self, size: u8) -> bool {
+    pub fn is_on_board_with_size(&self, size: CoordValue) -> bool {
         self.row < size && self.column < size
     }
 }
@@ -24,7 +26,7 @@ impl std::str::FromStr for Coords {
         let column = string.chars().next().and_then(parse_column_char);
         let row = string
             .get(1..)
-            .and_then(|s| s.parse::<u8>().ok())
+            .and_then(|s| s.parse::<CoordValue>().ok())
             .filter(|&row| 0 < row)
             .map(|row| row - 1);
 
@@ -37,16 +39,16 @@ impl std::str::FromStr for Coords {
     }
 }
 
-pub fn parse_column_char(c: char) -> Option<u8> {
+pub fn parse_column_char(c: char) -> Option<CoordValue> {
     if ('a'..='z').contains(&c) {
-        Some((c as u8) - b'a')
+        Some(((c as u8) - b'a') as CoordValue)
     } else {
         None
     }
 }
 
-pub fn to_column_char(column: u8) -> char {
-    (b'a' + column) as char
+pub fn to_column_char(column: CoordValue) -> char {
+    (b'a' + (column as u8)) as char
 }
 
 impl fmt::Display for Coords {

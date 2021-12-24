@@ -1,5 +1,6 @@
 use crate::board::Board;
 use crate::board::Color;
+use crate::coords::CoordValue;
 use crate::game::{Game, Status};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -20,7 +21,7 @@ pub trait Serialization: Sized {
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct StoredGame {
-    size: u8,
+    size: CoordValue,
     current_player: u8,
     cells: Vec<Vec<u8>>,
 }

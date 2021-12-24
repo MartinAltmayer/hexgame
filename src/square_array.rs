@@ -1,21 +1,23 @@
-use crate::coords::Coords;
+use crate::coords::{CoordValue, Coords};
+
+pub type Index = u16;
 
 #[derive(Clone)]
 pub struct SquareArray<T: Copy + Default> {
-    pub size: u8,
+    pub size: CoordValue,
     items: Vec<T>,
 }
 
 impl<T: Copy + Default> SquareArray<T> {
-    pub fn new(size: u8) -> SquareArray<T> {
-        let item_count: usize = usize::from(size) * usize::from(size);
+    pub fn new(size: CoordValue) -> SquareArray<T> {
+        let item_count = size * size;
         SquareArray {
             size,
-            items: vec![T::default(); item_count],
+            items: vec![T::default(); item_count as usize],
         }
     }
 
-    pub fn index_from_coords(&self, coords: Coords) -> u16 {
+    pub fn index_from_coords(&self, coords: Coords) -> Index {
         let Coords { row, column } = coords;
         debug_assert!(
             coords.is_on_board_with_size(self.size),
@@ -24,19 +26,19 @@ impl<T: Copy + Default> SquareArray<T> {
             Coords::new(self.size - 1, self.size - 1),
         );
 
-        u16::from(row) * u16::from(self.size) + u16::from(column)
+        (row as Index) * (self.size as Index) + (column as Index)
     }
 
-    pub fn at_index(&self, index: u16) -> T {
-        self.items[usize::from(index)]
+    pub fn at_index(&self, index: Index) -> T {
+        self.items[index as usize]
     }
 
     pub fn at_coord(&self, coords: Coords) -> T {
         self.at_index(self.index_from_coords(coords))
     }
 
-    pub fn set_index(&mut self, index: u16, value: T) {
-        self.items[usize::from(index)] = value;
+    pub fn set_index(&mut self, index: Index, value: T) {
+        self.items[index as usize] = value;
     }
 }
 

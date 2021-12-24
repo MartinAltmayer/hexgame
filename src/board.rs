@@ -1,15 +1,14 @@
-use crate::coords::Coords;
+use crate::coords::{CoordValue, Coords};
 use crate::errors::{InvalidBoard, InvalidMove};
-use crate::square_array::SquareArray;
+use crate::square_array::{Index, SquareArray};
 use crate::union_find::UnionFind;
-use std::convert::TryInto;
 use std::iter;
 use std::iter::Iterator;
 
 // Neighbor calculations assume size >= 2
-pub const MIN_BOARD_SIZE: u8 = 2;
+pub const MIN_BOARD_SIZE: CoordValue = 2;
 // Technically, we support much larger boards, but future optimizations may restrict this.
-pub const MAX_BOARD_SIZE: u8 = 19;
+pub const MAX_BOARD_SIZE: CoordValue = 19;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Color {
@@ -30,7 +29,7 @@ impl Color {
 pub enum Position {
     // Order is important here: UnionFind's merge always chooses larger positions as roots.
     // Thus, BOTTOM and RIGHT are always their own parent and we do not have to store their parents.
-    Index(u16),
+    Index(Index),
     Top,
     Left,
     Bottom,
@@ -51,8 +50,8 @@ pub struct Board {
 }
 
 impl Board {
-    pub fn new(size: u8) -> Self {
-        check_board_size(size).expect("Invalid size");
+    pub fn new(size: CoordValue) -> Self {
+        check_board_size(size as usize).expect("Invalid size");
         Self {
             cells: SquareArray::new(size),
             top_parent: Position::Top,
@@ -66,7 +65,7 @@ impl Board {
 
         for (row, cells_in_row) in (0..size).zip(cells) {
             if cells_in_row.len() != size as usize {
-                return Err(InvalidBoard::NotSquare(row as u8, size));
+                return Err(InvalidBoard::NotSquare(row, size));
             }
             for (column, cell) in (0..size).zip(cells_in_row) {
                 if let Some(color) = cell {
@@ -89,7 +88,7 @@ impl Board {
         result
     }
 
-    pub fn size(&self) -> u8 {
+    pub fn size(&self) -> CoordValue {
         self.cells.size
     }
 
@@ -105,9 +104,8 @@ impl Board {
         }
     }
 
-    fn get_neighbors(&self, index: u16) -> impl Iterator<Item = Position> {
-        let size: u16 = self.size().into();
-
+    fn get_neighbors(&self, index: Index) -> impl Iterator<Item = Position> {
+        let size = self.cells.size as Index;
         let left_neighbor = if index % size == 0 {
             Position::Left
         } else {
@@ -230,12 +228,16 @@ impl UnionFind<Position> for Board {
     }
 }
 
-fn check_board_size<T: Copy + TryInto<u8> + Into<usize>>(input: T) -> Result<u8, InvalidBoard> {
+fn check_board_size(input: usize) -> Result<CoordValue, InvalidBoard> {
     input
         .try_into()
         .ok()
         .filter(|&size| MIN_BOARD_SIZE <= size && size <= MAX_BOARD_SIZE)
-        .ok_or_else(|| InvalidBoard::SizeOutOfBounds(input.into(), MIN_BOARD_SIZE, MAX_BOARD_SIZE))
+        .ok_or(InvalidBoard::SizeOutOfBounds(
+            input,
+            MIN_BOARD_SIZE,
+            MAX_BOARD_SIZE,
+        ))
 }
 
 #[cfg(test)]
@@ -422,13 +424,13 @@ mod tests {
 mod test_neighbors {
     use super::*;
 
-    fn check_neighbors(board: &Board, row: u8, column: u8, expected: &[Position]) {
+    fn check_neighbors(board: &Board, row: CoordValue, column: CoordValue, expected: &[Position]) {
         let index = board.cells.index_from_coords(Coords { row, column });
         let neighbors: Vec<Position> = board.get_neighbors(index).collect();
         assert_eq!(neighbors, expected);
     }
 
-    fn make_position(board: &Board, row: u8, column: u8) -> Position {
+    fn make_position(board: &Board, row: CoordValue, column: CoordValue) -> Position {
         Position::Index(board.cells.index_from_coords(Coords { row, column }))
     }
 

@@ -1,4 +1,4 @@
-use crate::coords::Coords;
+use crate::coords::{CoordValue, Coords};
 use std::error::Error;
 use std::fmt;
 
@@ -27,8 +27,8 @@ impl Error for InvalidMove {}
 
 #[derive(Debug, PartialEq)]
 pub enum InvalidBoard {
-    SizeOutOfBounds(usize, u8, u8),
-    NotSquare(u8, u8),
+    SizeOutOfBounds(usize, CoordValue, CoordValue),
+    NotSquare(CoordValue, CoordValue),
 }
 
 impl fmt::Display for InvalidBoard {

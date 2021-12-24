@@ -1,5 +1,5 @@
 use crate::board::{Board, Color, Position};
-use crate::coords::Coords;
+use crate::coords::{CoordValue, Coords};
 use crate::errors::InvalidMove;
 use crate::union_find::UnionFind;
 
@@ -17,7 +17,7 @@ pub struct Game {
 }
 
 impl Game {
-    pub fn new(size: u8) -> Game {
+    pub fn new(size: CoordValue) -> Game {
         Game {
             board: Board::new(size),
             current_player: Color::Black,
