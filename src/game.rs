@@ -1,5 +1,4 @@
 use crate::board::{Board, StoneMatrix};
-use crate::cells::Position;
 use crate::color::Color;
 use crate::coords::{CoordValue, Coords};
 use crate::errors::{InvalidBoard, InvalidMove};
@@ -37,13 +36,6 @@ impl Game {
         })
     }
 
-    pub fn get_edges(color: Color) -> (Position, Position) {
-        match color {
-            Color::Black => (Position::Top, Position::Bottom),
-            Color::White => (Position::Left, Position::Right),
-        }
-    }
-
     pub fn play(&mut self, coords: Coords) -> Result<(), InvalidMove> {
         if let Status::Finished(_) = self.status {
             return Err(InvalidMove::GameOver);
@@ -70,8 +62,8 @@ impl Game {
     }
 
     fn is_finished_after_player(board: &mut Board, current_player: Color) -> bool {
-        let edges = Self::get_edges(current_player);
-        board.is_in_same_set(edges.0, edges.1)
+        let edges = board.get_edges(current_player);
+        board.is_in_same_set(edges[0], edges[1])
     }
 }
 

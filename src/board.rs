@@ -1,4 +1,4 @@
-use crate::cells::{Cell, Cells, Index, Position};
+use crate::cells::{Cell, Cells, Index};
 use crate::color::Color;
 use crate::coords::{CoordValue, Coords};
 use crate::errors::{InvalidBoard, InvalidMove};
@@ -16,18 +16,20 @@ pub type StoneMatrix = Vec<Vec<Option<Color>>>;
 #[derive(Clone)]
 pub struct Board {
     cells: Cells,
-    top_parent: Option<Position>,
-    left_parent: Option<Position>,
 }
 
 impl Board {
     pub fn new(size: CoordValue) -> Self {
         check_board_size(size as usize).expect("Invalid size");
-        Self {
+        let mut board = Self {
             cells: Cells::new(size),
-            top_parent: None,
-            left_parent: None,
+        };
+        for color in [Color::Black, Color::White] {
+            for edge in board.get_edges(color) {
+                board.cells.set_index(edge, Cell::with_color(color));
+            }
         }
+        board
     }
 
     pub fn from_stone_matrix(stones: StoneMatrix) -> Result<Self, InvalidBoard> {
@@ -67,48 +69,51 @@ impl Board {
         self.cells.at_coord(coords).color
     }
 
-    fn get_color_of_position(&self, position: Position) -> Option<Color> {
-        match position {
-            Position::Top | Position::Bottom => Some(Color::Black),
-            Position::Left | Position::Right => Some(Color::White),
-            Position::Index(index) => self.cells.at_index(index).color,
+    fn get_color_of_index(&self, index: Index) -> Option<Color> {
+        self.cells.at_index(index).color
+    }
+
+    pub fn get_edges(&self, color: Color) -> [Index; 2] {
+        match color {
+            Color::Black => [self.cells.top(), self.cells.bottom()],
+            Color::White => [self.cells.left(), self.cells.right()],
         }
     }
 
-    fn get_neighbors(&self, index: Index) -> impl Iterator<Item = Position> {
+    fn get_neighbors(&self, index: Index) -> impl Iterator<Item = Index> {
         let size = self.cells.size as Index;
         let left_neighbor = if index % size == 0 {
-            Position::Left
+            self.cells.left()
         } else {
-            Position::Index(index - 1)
+            index - 1
         };
 
         let top_left_neighbor = if index < size {
-            Position::Top
+            self.cells.top()
         } else {
-            Position::Index(index - size)
+            index - size
         };
 
         let top_right_neighbor = if index >= size && index % size < size - 1 {
-            Some(Position::Index(index - size + 1))
+            Some(index - size + 1)
         } else {
             None
         };
 
         let right_neighbor = if index % size == size - 1 {
-            Position::Right
+            self.cells.right()
         } else {
-            Position::Index(index + 1)
+            index + 1
         };
 
         let bottom_right_neighbor = if index >= size * (size - 1) {
-            Position::Bottom
+            self.cells.bottom()
         } else {
-            Position::Index(index + size)
+            index + size
         };
 
         let bottom_left_neighbor = if index < size * (size - 1) && index % size > 0 {
-            Some(Position::Index(index + size - 1))
+            Some(index + size - 1)
         } else {
             None
         };
@@ -128,7 +133,6 @@ impl Board {
         }
 
         let index = self.cells.index_from_coords(coords);
-        let position = Position::Index(index);
 
         if self.cells.at_index(index).color.is_some() {
             return Err(InvalidMove::CellOccupied(coords));
@@ -142,16 +146,16 @@ impl Board {
             },
         );
 
-        self.merge_with_neighbors(index, position, color);
+        self.merge_with_neighbors(index, color);
         Ok(())
     }
 
-    fn merge_with_neighbors(&mut self, index: Index, position: Position, color: Color) {
+    fn merge_with_neighbors(&mut self, index: Index, color: Color) {
         let mut iter = self.get_neighbors(index);
 
         while let Some(neighbor) = iter.next() {
-            if self.get_color_of_position(neighbor) == Some(color) {
-                self.merge(position, neighbor);
+            if self.get_color_of_index(neighbor) == Some(color) {
+                self.merge(index, neighbor);
                 // After merging with one neighbor, we can skip the next one:
                 // If the next neighbor also has the same color,
                 // then it must already be part of the same set.
@@ -175,36 +179,20 @@ impl Board {
     }
 }
 
-impl UnionFind<Position> for Board {
-    fn get_parent(&self, item: Position) -> Option<Position> {
-        match item {
-            Position::Top => self.top_parent,
-            Position::Left => self.left_parent,
-            Position::Bottom | Position::Right => None,
-            Position::Index(index) => self.cells.at_index(index).parent,
-        }
+impl UnionFind<Index> for Board {
+    fn get_parent(&self, item: Index) -> Option<Index> {
+        self.cells.at_index(item).parent
     }
 
-    fn set_parent(&mut self, item: Position, parent: Position) {
-        match item {
-            Position::Top => {
-                self.top_parent = Some(parent);
-            }
-            Position::Left => {
-                self.left_parent = Some(parent);
-            }
-            Position::Bottom | Position::Right => panic!("Cannot set parent of {:?}", item),
-            Position::Index(index) => {
-                let cell = self.cells.at_index(index);
-                self.cells.set_index(
-                    index,
-                    Cell {
-                        parent: Some(parent),
-                        ..cell
-                    },
-                );
-            }
-        }
+    fn set_parent(&mut self, index: Index, parent: Index) {
+        let cell = self.cells.at_index(index);
+        self.cells.set_index(
+            index,
+            Cell {
+                parent: Some(parent),
+                ..cell
+            },
+        );
     }
 }
 
@@ -229,6 +217,22 @@ mod tests {
         let board = Board::new(3);
         assert_eq!(board.size(), 3);
         assert!(board.get_color(Coords { row: 0, column: 0 }).is_none());
+        assert_eq!(
+            board.get_color_of_index(board.cells.left()),
+            Some(Color::White)
+        );
+        assert_eq!(
+            board.get_color_of_index(board.cells.top()),
+            Some(Color::Black)
+        );
+        assert_eq!(
+            board.get_color_of_index(board.cells.bottom()),
+            Some(Color::Black)
+        );
+        assert_eq!(
+            board.get_color_of_index(board.cells.left()),
+            Some(Color::White)
+        );
     }
 
     #[test]
@@ -339,11 +343,11 @@ mod tests {
     fn test_merge_neighbors_of_own_color() {
         let mut board = Board::new(5);
         let center = Coords { row: 2, column: 2 };
-        let center_index = Position::Index(board.cells.index_from_coords(center));
+        let center_index = board.cells.index_from_coords(center);
         let neighbor1 = Coords { row: 1, column: 2 };
-        let neighbor1_index = Position::Index(board.cells.index_from_coords(neighbor1));
+        let neighbor1_index = board.cells.index_from_coords(neighbor1);
         let neighbor2 = Coords { row: 3, column: 2 };
-        let neighbor2_index = Position::Index(board.cells.index_from_coords(neighbor2));
+        let neighbor2_index = board.cells.index_from_coords(neighbor2);
         board.play(neighbor1, Color::Black).unwrap();
         board.play(neighbor2, Color::Black).unwrap();
 
@@ -359,9 +363,9 @@ mod tests {
     fn test_do_not_merge_neighbors_of_other_color() {
         let mut board = Board::new(5);
         let center = Coords { row: 2, column: 2 };
-        let center_index = Position::Index(board.cells.index_from_coords(center));
+        let center_index = board.cells.index_from_coords(center);
         let neighbor = Coords { row: 1, column: 2 };
-        let neighbor_index = Position::Index(board.cells.index_from_coords(neighbor));
+        let neighbor_index = board.cells.index_from_coords(neighbor);
 
         board.play(neighbor, Color::White).unwrap();
         board.play(center, Color::Black).unwrap();
@@ -373,9 +377,9 @@ mod tests {
     fn test_do_not_merge_cells_that_are_not_connected() {
         let mut board = Board::new(3);
         let top_left = Coords { row: 0, column: 0 };
-        let top_left_index = Position::Index(board.cells.index_from_coords(top_left));
+        let top_left_index = board.cells.index_from_coords(top_left);
         let bottom_right = Coords { row: 2, column: 2 };
-        let bottom_right_index = Position::Index(board.cells.index_from_coords(bottom_right));
+        let bottom_right_index = board.cells.index_from_coords(bottom_right);
 
         board.play(top_left, Color::Black).unwrap();
         board.play(bottom_right, Color::Black).unwrap();
@@ -404,14 +408,14 @@ mod tests {
 mod test_neighbors {
     use super::*;
 
-    fn check_neighbors(board: &Board, row: CoordValue, column: CoordValue, expected: &[Position]) {
+    fn check_neighbors(board: &Board, row: CoordValue, column: CoordValue, expected: &[Index]) {
         let index = board.cells.index_from_coords(Coords { row, column });
-        let neighbors: Vec<Position> = board.get_neighbors(index).collect();
+        let neighbors: Vec<Index> = board.get_neighbors(index).collect();
         assert_eq!(neighbors, expected);
     }
 
-    fn make_position(board: &Board, row: CoordValue, column: CoordValue) -> Position {
-        Position::Index(board.cells.index_from_coords(Coords { row, column }))
+    fn make_position(board: &Board, row: CoordValue, column: CoordValue) -> Index {
+        board.cells.index_from_coords(Coords::new(row, column))
     }
 
     #[test]
@@ -419,22 +423,22 @@ mod test_neighbors {
         let board = Board::new(5);
         #[rustfmt::skip]
         check_neighbors(&board, 0, 0, &[
-            Position::Left,
-            Position::Top,
+            board.cells.left(),
+            board.cells.top(),
             make_position(&board, 0, 1),
             make_position(&board, 1, 0),
         ]);
         #[rustfmt::skip]
         check_neighbors(&board, 0, 1, &[
             make_position(&board, 0, 0),
-            Position::Top,
+            board.cells.top(),
             make_position(&board, 0, 2),
             make_position(&board, 1, 1),
             make_position(&board, 1, 0),
         ]);
         #[rustfmt::skip]
         check_neighbors(&board, 1, 0, &[
-            Position::Left,
+            board.cells.left(),
             make_position(&board, 0, 0),
             make_position(&board, 0, 1),
             make_position(&board, 1, 1),
@@ -448,15 +452,15 @@ mod test_neighbors {
         #[rustfmt::skip]
         check_neighbors(&board, 0, 4, &[
             make_position(&board, 0, 3),
-            Position::Top,
-            Position::Right,
+            board.cells.top(),
+            board.cells.right(),
             make_position(&board, 1, 4),
             make_position(&board, 1, 3),
         ]);
         #[rustfmt::skip]
         check_neighbors(&board, 0, 3, &[
             make_position(&board, 0, 2),
-            Position::Top,
+            board.cells.top(),
             make_position(&board, 0, 4),
             make_position(&board, 1, 3),
             make_position(&board, 1, 2),
@@ -465,7 +469,7 @@ mod test_neighbors {
         check_neighbors(&board, 1, 4, &[
             make_position(&board, 1, 3),
             make_position(&board, 0, 4),
-            Position::Right,
+            board.cells.right(),
             make_position(&board, 2, 4),
             make_position(&board, 2, 3),
         ]);
@@ -476,15 +480,15 @@ mod test_neighbors {
         let board = Board::new(5);
         #[rustfmt::skip]
         check_neighbors(&board, 4, 0, &[
-            Position::Left,
+            board.cells.left(),
             make_position(&board, 3, 0),
             make_position(&board, 3, 1),
             make_position(&board, 4, 1),
-            Position::Bottom,
+            board.cells.bottom(),
         ]);
         #[rustfmt::skip]
         check_neighbors(&board, 3, 0, &[
-            Position::Left,
+            board.cells.left(),
             make_position(&board, 2, 0),
             make_position(&board, 2, 1),
             make_position(&board, 3, 1),
@@ -496,7 +500,7 @@ mod test_neighbors {
             make_position(&board, 3, 1),
             make_position(&board, 3, 2),
             make_position(&board, 4, 2),
-            Position::Bottom,
+            board.cells.bottom(),
         ]);
     }
 
@@ -507,14 +511,14 @@ mod test_neighbors {
         check_neighbors(&board, 4, 4, &[
             make_position(&board, 4, 3),
             make_position(&board, 3, 4),
-            Position::Right,
-            Position::Bottom,
+            board.cells.right(),
+            board.cells.bottom(),
         ]);
         #[rustfmt::skip]
         check_neighbors(&board, 3, 4, &[
             make_position(&board, 3, 3),
             make_position(&board, 2, 4),
-            Position::Right,
+            board.cells.right(),
             make_position(&board, 4, 4),
             make_position(&board, 4, 3),
         ]);
@@ -524,7 +528,7 @@ mod test_neighbors {
             make_position(&board, 3, 3),
             make_position(&board, 3, 4),
             make_position(&board, 4, 4),
-            Position::Bottom,
+            board.cells.bottom(),
         ]);
     }
 
