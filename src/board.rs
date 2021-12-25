@@ -45,8 +45,8 @@ struct Cell {
 #[derive(Clone)]
 pub struct Board {
     cells: SquareArray<Cell>,
-    top_parent: Position,
-    left_parent: Position,
+    top_parent: Option<Position>,
+    left_parent: Option<Position>,
 }
 
 impl Board {
@@ -54,8 +54,8 @@ impl Board {
         check_board_size(size as usize).expect("Invalid size");
         Self {
             cells: SquareArray::new(size),
-            top_parent: Position::Top,
-            left_parent: Position::Left,
+            top_parent: None,
+            left_parent: None,
         }
     }
 
@@ -167,7 +167,7 @@ impl Board {
             index,
             Cell {
                 color: Some(color),
-                parent: Some(position),
+                parent: None,
             },
         );
 
@@ -205,22 +205,22 @@ impl Board {
 }
 
 impl UnionFind<Position> for Board {
-    fn get_parent(&self, item: Position) -> Position {
+    fn get_parent(&self, item: Position) -> Option<Position> {
         match item {
             Position::Top => self.top_parent,
             Position::Left => self.left_parent,
-            Position::Bottom | Position::Right => item,
-            Position::Index(index) => self.cells.at_index(index).parent.unwrap_or(item),
+            Position::Bottom | Position::Right => None,
+            Position::Index(index) => self.cells.at_index(index).parent,
         }
     }
 
     fn set_parent(&mut self, item: Position, parent: Position) {
         match item {
             Position::Top => {
-                self.top_parent = parent;
+                self.top_parent = Some(parent);
             }
             Position::Left => {
-                self.left_parent = parent;
+                self.left_parent = Some(parent);
             }
             Position::Bottom | Position::Right => panic!("Cannot set parent of {:?}", item),
             Position::Index(index) => {

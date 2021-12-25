@@ -9,8 +9,9 @@ use std::cmp::Ordering;
 /// It is also used by Mohex: https://github.com/cgao3/benzene-vanilla-cmake/blob/master/src/mohex/MoHexBoard.cpp
 ///
 /// This trait makes no assumptions on how parents are stored. Implementors must provide `get_parent` and `set_parent` methods for this.
+
 pub trait UnionFind<T: Copy + PartialOrd + Eq> {
-    fn get_parent(&self, item: T) -> T;
+    fn get_parent(&self, item: T) -> Option<T>;
     fn set_parent(&mut self, item: T, parent: T);
 
     fn is_in_same_set(&mut self, item1: T, item2: T) -> bool {
@@ -18,23 +19,16 @@ pub trait UnionFind<T: Copy + PartialOrd + Eq> {
     }
 
     fn find_root(&mut self, item: T) -> T {
+        let mut item = item;
         let mut root = item;
-        loop {
-            let parent = self.get_parent(root);
-            if parent != root {
-                root = parent;
-            } else {
-                break;
-            }
+
+        while let Some(next_root) = self.get_parent(root) {
+            root = next_root;
         }
 
-        loop {
-            let parent = self.get_parent(item);
-            if parent != root {
-                self.set_parent(item, root)
-            } else {
-                break;
-            }
+        while item != root {
+            self.set_parent(item, root);
+            item = self.get_parent(item).unwrap();
         }
 
         root
@@ -56,12 +50,6 @@ pub trait UnionFind<T: Copy + PartialOrd + Eq> {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, PartialOrd)]
-struct Item {
-    value: u8,
-    parent: usize,
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
@@ -69,29 +57,30 @@ mod test {
     type Item = u8;
 
     struct Collection {
-        parents: Vec<Item>,
+        parents: Vec<Option<Item>>,
+    }
+
+    impl Collection {
+        pub fn new(size: usize) -> Self {
+            Self {
+                parents: vec![None; size],
+            }
+        }
     }
 
     impl UnionFind<Item> for Collection {
-        fn get_parent(&self, item: Item) -> Item {
+        fn get_parent(&self, item: Item) -> Option<Item> {
             self.parents[item as usize]
         }
 
         fn set_parent(&mut self, item: Item, parent: Item) {
-            self.parents[item as usize] = parent;
-        }
-    }
-
-    fn build_collection() -> Collection {
-        // Each item has itself as parent, i.e. all sets have a single element.
-        Collection {
-            parents: vec![0, 1, 2, 3],
+            self.parents[item as usize] = Some(parent);
         }
     }
 
     #[test]
     fn test_find_root() {
-        let mut collection = build_collection();
+        let mut collection = Collection::new(4);
         assert_eq!(collection.find_root(2), 2);
 
         collection.merge(2, 3);
@@ -100,40 +89,40 @@ mod test {
 
     #[test]
     fn test_find_root_compresses_paths() {
-        let mut collection = build_collection();
+        let mut collection = Collection::new(4);
         collection.merge(0, 1);
         collection.merge(1, 2);
 
-        assert_eq!(collection.parents[0], 1);
+        assert_eq!(collection.parents[0], Some(1));
         assert_eq!(collection.find_root(0), 2);
-        assert_eq!(collection.parents[0], 2);
+        assert_eq!(collection.parents[0], Some(2));
     }
 
     #[test]
     fn test_merge_below_root() {
-        let mut collection = build_collection();
+        let mut collection = Collection::new(4);
         collection.merge(1, 2);
         collection.merge(0, 1);
-        assert_eq!(collection.parents[0], 2);
+        assert_eq!(collection.parents[0], Some(2));
     }
 
     #[test]
     fn test_merge_smaller_root_below_larger_root() {
-        let mut collection = build_collection();
+        let mut collection = Collection::new(4);
         collection.merge(0, 3);
         collection.merge(1, 2);
-        assert_eq!(collection.parents[0], 3);
-        assert_eq!(collection.parents[1], 2);
+        assert_eq!(collection.parents[0], Some(3));
+        assert_eq!(collection.parents[1], Some(2));
 
         collection.merge(0, 1);
-        assert_eq!(collection.parents[1], 2);
-        assert_eq!(collection.parents[2], 3);
+        assert_eq!(collection.parents[1], Some(2));
+        assert_eq!(collection.parents[2], Some(3));
         assert_eq!(collection.find_root(1), 3);
     }
 
     #[test]
     fn test_is_in_same_set() {
-        let mut collection = build_collection();
+        let mut collection = Collection::new(4);
         collection.merge(0, 2);
         collection.merge(1, 2);
         assert!(collection.is_in_same_set(0, 1));
