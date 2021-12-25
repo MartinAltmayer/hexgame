@@ -1,6 +1,7 @@
+use crate::cells::{Cell, Cells, Index, Position};
+use crate::color::Color;
 use crate::coords::{CoordValue, Coords};
 use crate::errors::{InvalidBoard, InvalidMove};
-use crate::square_array::{Index, SquareArray};
 use crate::union_find::UnionFind;
 use std::iter;
 use std::iter::Iterator;
@@ -10,41 +11,9 @@ pub const MIN_BOARD_SIZE: CoordValue = 2;
 // Technically, we support much larger boards, but future optimizations may restrict this.
 pub const MAX_BOARD_SIZE: CoordValue = 19;
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum Color {
-    Black,
-    White,
-}
-
-impl Color {
-    pub fn opponent_color(&self) -> Self {
-        match self {
-            Color::Black => Color::White,
-            Color::White => Color::Black,
-        }
-    }
-}
-
-#[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum Position {
-    // Order is important here: UnionFind's merge always chooses larger positions as roots.
-    // Thus, BOTTOM and RIGHT are always their own parent and we do not have to store their parents.
-    Index(Index),
-    Top,
-    Left,
-    Bottom,
-    Right,
-}
-
-#[derive(Copy, Clone, Default)]
-struct Cell {
-    color: Option<Color>,
-    parent: Option<Position>,
-}
-
 #[derive(Clone)]
 pub struct Board {
-    cells: SquareArray<Cell>,
+    cells: Cells,
     top_parent: Option<Position>,
     left_parent: Option<Position>,
 }
@@ -53,7 +22,7 @@ impl Board {
     pub fn new(size: CoordValue) -> Self {
         check_board_size(size as usize).expect("Invalid size");
         Self {
-            cells: SquareArray::new(size),
+            cells: Cells::new(size),
             top_parent: None,
             left_parent: None,
         }

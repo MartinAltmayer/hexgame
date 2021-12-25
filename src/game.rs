@@ -1,4 +1,6 @@
-use crate::board::{Board, Color, Position};
+use crate::board::Board;
+use crate::cells::Position;
+use crate::color::Color;
 use crate::coords::{CoordValue, Coords};
 use crate::errors::InvalidMove;
 use crate::union_find::UnionFind;

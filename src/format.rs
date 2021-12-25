@@ -1,6 +1,7 @@
 use std::fmt;
 
-use crate::board::{Board, Color};
+use crate::board::Board;
+use crate::color::Color;
 use crate::coords::{to_column_char, CoordValue, Coords};
 
 impl fmt::Display for Board {

@@ -1,5 +1,5 @@
 use crate::board::Board;
-use crate::board::Color;
+use crate::color::Color;
 use crate::coords::CoordValue;
 use crate::game::{Game, Status};
 use serde::{Deserialize, Serialize};
