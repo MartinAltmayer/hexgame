@@ -171,13 +171,22 @@ impl Board {
             },
         );
 
-        for neighbor in self.get_neighbors(index) {
+        self.merge_with_neighbors(index, position, color);
+        Ok(())
+    }
+
+    fn merge_with_neighbors(&mut self, index: Index, position: Position, color: Color) {
+        let mut iter = self.get_neighbors(index);
+
+        while let Some(neighbor) = iter.next() {
             if self.get_color_of_position(neighbor) == Some(color) {
                 self.merge(position, neighbor);
+                // After merging with one neighbor, we can skip the next one:
+                // If the next neighbor also has the same color,
+                // then it must already be part of the same set.
+                iter.next();
             }
         }
-
-        Ok(())
     }
 
     pub fn get_empty_cells(&self) -> Vec<Coords> {
