@@ -1,7 +1,6 @@
-use crate::board::Board;
 use crate::color::Color;
 use crate::coords::CoordValue;
-use crate::game::{Game, Status};
+use crate::game::Game;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::io::{Error, ErrorKind, Result};
@@ -23,7 +22,7 @@ pub trait Serialization: Sized {
 struct StoredGame {
     size: CoordValue,
     current_player: u8,
-    cells: Vec<Vec<u8>>,
+    stones: Vec<Vec<u8>>,
 }
 
 impl Serialization for Game {
@@ -31,7 +30,7 @@ impl Serialization for Game {
         let stored_game = StoredGame {
             size: self.board.size(),
             current_player: serialize_color(&Some(self.current_player)),
-            cells: store_cells(&self.board.to_cells()),
+            stones: store_stone_matrix(&self.board.to_stone_matrix()),
         };
 
         serde_json::to_value(&stored_game).expect("Game serialization failed")
@@ -39,24 +38,18 @@ impl Serialization for Game {
 
     fn load_from_json(value: Value) -> Result<Self> {
         let stored_game: StoredGame = serde_json::from_value(value)?;
-        let cells = load_cells(&stored_game.cells)?;
-        let board = Board::from_cells(cells).map_err(invalid_data)?;
-        let current_player = deserialize_color(&stored_game.current_player)?;
-        if current_player.is_none() {
-            return Err(invalid_data("Current player is 0"));
-        }
+        let stones = load_stone_matrix(&stored_game.stones)?;
+        let current_player =
+            deserialize_color(&stored_game.current_player).and_then(|maybe_color| {
+                maybe_color.ok_or_else(|| invalid_data("Current player is 0"))
+            })?;
 
-        Ok(Game {
-            board,
-            // current player doesn't matter if game has finished.
-            current_player: current_player.unwrap(),
-            status: Status::Ongoing, // TODO
-        })
+        Game::load(stones, current_player).map_err(invalid_data)
     }
 }
 
-fn store_cells(cells: &[Vec<Option<Color>>]) -> Vec<Vec<u8>> {
-    cells.iter().map(store_row).collect()
+fn store_stone_matrix(stones: &[Vec<Option<Color>>]) -> Vec<Vec<u8>> {
+    stones.iter().map(store_row).collect()
 }
 
 #[allow(clippy::ptr_arg)]
@@ -64,8 +57,8 @@ fn store_row(row: &Vec<Option<Color>>) -> Vec<u8> {
     row.iter().map(serialize_color).collect()
 }
 
-fn load_cells(cells: &[Vec<u8>]) -> Result<Vec<Vec<Option<Color>>>> {
-    cells.iter().map(load_row).collect()
+fn load_stone_matrix(stones: &[Vec<u8>]) -> Result<Vec<Vec<Option<Color>>>> {
+    stones.iter().map(load_row).collect()
 }
 
 #[allow(clippy::ptr_arg)]
@@ -113,7 +106,7 @@ mod tests {
             json!({
                 "size": 2,
                 "currentPlayer": 1,
-                "cells": [[0, 1], [2, 0]]
+                "stones": [[0, 1], [2, 0]]
             })
         );
     }
@@ -123,7 +116,7 @@ mod tests {
         let data = json!({
             "size": 2,
             "currentPlayer": 1,
-            "cells": [[0, 1], [2, 0]]
+            "stones": [[0, 1], [2, 0]]
         });
 
         let game = Game::load_from_json(data).unwrap();
@@ -157,12 +150,25 @@ mod tests {
         let data = json!({
             "size": 2,
             "currentPlayer": 2,
-            "cells": [[1, 0], [0, 0]],
+            "stones": [[1, 0], [0, 0]],
         });
 
         let game = Game::load_from_json(data).unwrap();
 
         assert_eq!(game.current_player, Color::White);
+    }
+
+    #[test]
+    fn test_deserialize_invalid_current_player() {
+        let data = json!({
+            "size": 2,
+            "currentPlayer": 0,
+            "stones": [[1, 0], [0, 0]],
+        });
+
+        let result = Game::load_from_json(data);
+
+        assert!(result.is_err());
     }
 
     #[test]
@@ -177,7 +183,9 @@ mod tests {
 
         assert_eq!(game.board.size(), loaded_game.board.size());
         assert_eq!(game.current_player, loaded_game.current_player);
-        assert_eq!(game.board.to_cells(), loaded_game.board.to_cells());
+        assert_eq!(
+            game.board.to_stone_matrix(),
+            loaded_game.board.to_stone_matrix()
+        );
     }
-    // TODO: test errors?
 }

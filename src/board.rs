@@ -11,6 +11,8 @@ pub const MIN_BOARD_SIZE: CoordValue = 2;
 // Technically, we support much larger boards, but future optimizations may restrict this.
 pub const MAX_BOARD_SIZE: CoordValue = 19;
 
+pub type StoneMatrix = Vec<Vec<Option<Color>>>;
+
 #[derive(Clone)]
 pub struct Board {
     cells: Cells,
@@ -28,16 +30,18 @@ impl Board {
         }
     }
 
-    pub fn from_cells(cells: Vec<Vec<Option<Color>>>) -> Result<Self, InvalidBoard> {
-        let size = check_board_size(cells.len())?;
+    pub fn from_stone_matrix(stones: StoneMatrix) -> Result<Self, InvalidBoard> {
+        let size = check_board_size(stones.len())?;
         let mut board = Self::new(size);
 
-        for (row, cells_in_row) in (0..size).zip(cells) {
-            if cells_in_row.len() != size as usize {
-                return Err(InvalidBoard::NotSquare(row, size));
+        for (row, stones_in_row) in stones.into_iter().enumerate() {
+            if stones_in_row.len() != size as usize {
+                return Err(InvalidBoard::NotSquare(row as u8, size));
             }
-            for (column, cell) in (0..size).zip(cells_in_row) {
+            for (column, cell) in stones_in_row.into_iter().enumerate() {
                 if let Some(color) = cell {
+                    let row = row as u8;
+                    let column = column as u8;
                     board.play(Coords { row, column }, color).unwrap();
                 }
             }
@@ -45,16 +49,14 @@ impl Board {
         Ok(board)
     }
 
-    pub fn to_cells(&self) -> Vec<Vec<Option<Color>>> {
-        let mut result = vec![];
-        for row in 0..self.size() {
-            let mut cells_in_row = vec![];
-            for column in 0..self.size() {
-                cells_in_row.push(self.get_color(Coords { row, column }));
-            }
-            result.push(cells_in_row);
-        }
-        result
+    pub fn to_stone_matrix(&self) -> StoneMatrix {
+        (0..self.size())
+            .map(|row| {
+                (0..self.size())
+                    .map(|column| self.get_color(Coords::new(row, column)))
+                    .collect()
+            })
+            .collect()
     }
 
     pub fn size(&self) -> CoordValue {
@@ -230,12 +232,12 @@ mod tests {
     }
 
     #[test]
-    fn test_from_cells() {
+    fn test_from_stone_matrix() {
         let cells = vec![
             vec![None, Some(Color::Black)],
             vec![Some(Color::White), None],
         ];
-        let board = Board::from_cells(cells).unwrap();
+        let board = Board::from_stone_matrix(cells).unwrap();
         assert_eq!(board.get_color(Coords { row: 0, column: 0 }), None);
         assert_eq!(
             board.get_color(Coords { row: 0, column: 1 }),
@@ -249,9 +251,9 @@ mod tests {
     }
 
     #[test]
-    fn test_from_cells_with_size_too_small() {
+    fn test_from_stone_matrix_with_size_too_small() {
         let cells = vec![vec![Some(Color::Black)]];
-        let error = Board::from_cells(cells).err().unwrap();
+        let error = Board::from_stone_matrix(cells).err().unwrap();
         assert_eq!(
             error,
             InvalidBoard::SizeOutOfBounds(1, MIN_BOARD_SIZE, MAX_BOARD_SIZE)
@@ -259,14 +261,14 @@ mod tests {
     }
 
     #[test]
-    fn test_from_cells_with_size_too_large() {
+    fn test_from_stone_matrix_with_size_too_large() {
         let invalid_size = MAX_BOARD_SIZE as usize + 1;
         let row: Vec<Option<Color>> = vec![None; invalid_size];
         let mut cells = vec![];
         for _ in 0..invalid_size {
             cells.push(row.clone());
         }
-        let error = Board::from_cells(cells).err().unwrap();
+        let error = Board::from_stone_matrix(cells).err().unwrap();
         assert_eq!(
             error,
             InvalidBoard::SizeOutOfBounds(invalid_size, MIN_BOARD_SIZE, MAX_BOARD_SIZE)
@@ -274,17 +276,17 @@ mod tests {
     }
 
     #[test]
-    fn test_from_cells_with_non_square_board() {
+    fn test_from_stone_matrix_with_non_square_board() {
         let cells = vec![
             vec![None, Some(Color::Black)],
             vec![Some(Color::White), None, None],
         ];
-        let error = Board::from_cells(cells).err().unwrap();
+        let error = Board::from_stone_matrix(cells).err().unwrap();
         assert_eq!(error, InvalidBoard::NotSquare(1, 2));
     }
 
     #[test]
-    fn test_to_cells() {
+    fn test_to_stone_matrix() {
         let mut board = Board::new(2);
         board
             .play(Coords { row: 0, column: 1 }, Color::Black)
@@ -296,7 +298,7 @@ mod tests {
             vec![None, Some(Color::Black)],
             vec![Some(Color::White), None],
         ];
-        assert_eq!(board.to_cells(), expected_cells);
+        assert_eq!(board.to_stone_matrix(), expected_cells);
     }
 
     #[test]

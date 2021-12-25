@@ -1,8 +1,8 @@
-use crate::board::Board;
+use crate::board::{Board, StoneMatrix};
 use crate::cells::Position;
 use crate::color::Color;
 use crate::coords::{CoordValue, Coords};
-use crate::errors::InvalidMove;
+use crate::errors::{InvalidBoard, InvalidMove};
 use crate::union_find::UnionFind;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -27,6 +27,16 @@ impl Game {
         }
     }
 
+    pub fn load(stones: StoneMatrix, current_player: Color) -> Result<Self, InvalidBoard> {
+        let mut board = Board::from_stone_matrix(stones)?;
+        let status = Self::get_status(&mut board);
+        Ok(Self {
+            board,
+            current_player,
+            status,
+        })
+    }
+
     pub fn get_edges(color: Color) -> (Position, Position) {
         match color {
             Color::Black => (Position::Top, Position::Bottom),
@@ -41,15 +51,27 @@ impl Game {
 
         self.board.play(coords, self.current_player)?;
 
-        let edges = Game::get_edges(self.current_player);
-
-        if self.board.is_in_same_set(edges.0, edges.1) {
+        if Self::is_finished_after_player(&mut self.board, self.current_player) {
             self.status = Status::Finished(self.current_player);
         } else {
             self.current_player = self.current_player.opponent_color();
         }
 
         Ok(())
+    }
+
+    fn get_status(board: &mut Board) -> Status {
+        if Self::is_finished_after_player(board, Color::Black) {
+            return Status::Finished(Color::Black);
+        } else if Self::is_finished_after_player(board, Color::White) {
+            return Status::Finished(Color::White);
+        }
+        Status::Ongoing
+    }
+
+    fn is_finished_after_player(board: &mut Board, current_player: Color) -> bool {
+        let edges = Self::get_edges(current_player);
+        board.is_in_same_set(edges.0, edges.1)
     }
 }
 
@@ -106,6 +128,33 @@ mod test {
         let _ = game.play(Coords { row: 0, column: 2 }); // black's horizontal connection complete
         let _ = game.play(Coords { row: 1, column: 2 }); // white wins here
 
+        assert_eq!(game.status, Status::Finished(Color::White));
+    }
+
+    #[test]
+    fn test_load_game() {
+        let current_player = Color::Black;
+        let stone_matrix = vec![
+            vec![None, Some(Color::Black)],
+            vec![Some(Color::White), None],
+        ];
+        let game = Game::load(stone_matrix, current_player).unwrap();
+
+        assert_eq!(game.board.get_color(Coords::new(1, 0)), Some(Color::White));
+        assert_eq!(game.current_player, current_player);
+        assert_eq!(game.status, Status::Ongoing);
+    }
+
+    #[test]
+    fn test_load_finished_game() {
+        let current_player = Color::Black;
+        let stone_matrix = vec![
+            vec![Some(Color::Black), Some(Color::White)],
+            vec![Some(Color::White), Some(Color::Black)],
+        ];
+        let game = Game::load(stone_matrix, current_player).unwrap();
+
+        assert_eq!(game.current_player, current_player);
         assert_eq!(game.status, Status::Finished(Color::White));
     }
 }
