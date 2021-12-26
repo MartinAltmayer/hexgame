@@ -165,7 +165,8 @@ impl Board {
     }
 
     pub fn get_empty_cells(&self) -> Vec<Coords> {
-        let mut result = vec![];
+        let size = self.size() as usize;
+        let mut result = Vec::with_capacity(size * size);
         for row in 0..self.size() {
             for column in 0..self.size() {
                 let coords = Coords { row, column };
