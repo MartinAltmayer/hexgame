@@ -38,6 +38,11 @@ pub trait UnionFind<T: Copy + PartialOrd + Eq> {
         let root1 = self.find_root(item1);
         let root2 = self.find_root(item2);
 
+        // Simple & fast merge heuristic
+        // In my experiments this runs faster than just set_parent(root1, root2),
+        // presumably because it reduces the total number of set_parents.
+        // Note that we store edges at higher indexes than normal cells.
+        // Preferring the "large" edges as parents gives another performance boost.
         match root1.partial_cmp(&root2) {
             Some(Ordering::Equal) => (),
             Some(Ordering::Greater) => {
