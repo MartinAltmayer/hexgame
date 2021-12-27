@@ -178,6 +178,43 @@ impl Board {
 
         result
     }
+
+    pub fn find_attacked_bridges(&self, coords: Coords) -> Vec<Coords> {
+        let mut result = vec![];
+        let search_string = match self.get_color(coords) {
+            None => return vec![],
+            Some(Color::Black) => "w.w",
+            Some(Color::White) => "b.b",
+        };
+
+        let neighbors: Vec<Index> = self
+            .get_neighbors(self.cells.index_from_coords(coords))
+            .collect();
+
+        let mut string = String::with_capacity(8);
+
+        for &neighbor in neighbors.iter() {
+            string.push(match self.get_color_of_index(neighbor) {
+                None => '.',
+                Some(Color::Black) => 'b',
+                Some(Color::White) => 'w',
+            });
+        }
+
+        string.push_str(&string[0..2].to_string());
+
+        let mut index = 0;
+
+        while let Some(found_index) = string[index..].find(search_string) {
+            let matched_index = index + found_index;
+            let attacked_bridge = neighbors[(matched_index + 1) % neighbors.len()];
+
+            result.push(self.cells.coords_from_index(attacked_bridge));
+            index = matched_index + 2; // if we've found "w w", continue search on the second "w"
+        }
+
+        result
+    }
 }
 
 impl UnionFind<Index> for Board {
@@ -545,5 +582,117 @@ mod test_neighbors {
             make_position(&board, 3, 2),
             make_position(&board, 3, 1),
         ]);
+    }
+
+    #[cfg(test)]
+    mod test_attacked_bridges {
+        use super::*;
+        const CENTER: Coords = Coords { row: 2, column: 2 };
+
+        #[test]
+        fn test_coords_without_stone() {
+            let board = Board::new(5);
+            assert_eq!(board.find_attacked_bridges(CENTER), vec![]);
+        }
+
+        #[test]
+        fn test_coords_without_neighbors() {
+            let mut board = Board::new(5);
+            let _ = board.play(CENTER, Color::White);
+            assert_eq!(board.find_attacked_bridges(CENTER), vec![]);
+        }
+
+        #[test]
+        fn test_simple_bridge_in_center() {
+            let mut board = Board::new(5);
+            let _ = board.play(Coords { row: 1, column: 3 }, Color::Black);
+            let _ = board.play(Coords { row: 3, column: 2 }, Color::Black);
+            let _ = board.play(CENTER, Color::White);
+
+            assert_eq!(
+                board.find_attacked_bridges(CENTER),
+                vec![Coords { row: 2, column: 3 }]
+            );
+        }
+
+        #[test]
+        fn test_three_bridges_in_center() {
+            let mut board = Board::new(5);
+            let _ = board.play(Coords { row: 2, column: 1 }, Color::Black);
+            let _ = board.play(Coords { row: 1, column: 3 }, Color::Black);
+            let _ = board.play(Coords { row: 3, column: 2 }, Color::Black);
+            let _ = board.play(CENTER, Color::White);
+
+            assert_eq!(
+                board.find_attacked_bridges(CENTER),
+                vec![
+                    Coords { row: 1, column: 2 },
+                    Coords { row: 2, column: 3 },
+                    Coords { row: 3, column: 1 },
+                ]
+            );
+        }
+
+        #[test]
+        fn test_bridge_from_overlapping_from_last_to_first_neighbor() {
+            let mut board = Board::new(5);
+            let _ = board.play(Coords { row: 3, column: 1 }, Color::Black);
+            let _ = board.play(Coords { row: 1, column: 2 }, Color::Black);
+            let _ = board.play(CENTER, Color::White);
+
+            assert_eq!(
+                board.find_attacked_bridges(CENTER),
+                vec![Coords { row: 2, column: 1 },]
+            );
+        }
+
+        #[test]
+        fn test_bridge_in_obtuse_corner() {
+            let mut board = Board::new(5);
+            let attacked_coords = Coords { row: 0, column: 1 };
+            let _ = board.play(Coords { row: 1, column: 0 }, Color::Black);
+            let _ = board.play(attacked_coords, Color::White);
+
+            assert_eq!(
+                board.find_attacked_bridges(attacked_coords),
+                vec![Coords { row: 0, column: 0 },]
+            );
+        }
+
+        #[test]
+        fn test_bridge_next_to_obtuse_corner() {
+            let mut board = Board::new(5);
+            let attacked_coords = Coords { row: 0, column: 0 };
+            let _ = board.play(Coords { row: 1, column: 0 }, Color::Black);
+            let _ = board.play(attacked_coords, Color::White);
+
+            assert_eq!(
+                board.find_attacked_bridges(attacked_coords),
+                vec![Coords { row: 0, column: 1 },]
+            );
+        }
+
+        #[test]
+        fn test_bridge_to_own_edge() {
+            let mut board = Board::new(5);
+            let attacked_coords = Coords { row: 0, column: 2 };
+            let _ = board.play(Coords { row: 1, column: 2 }, Color::Black);
+            let _ = board.play(attacked_coords, Color::White);
+
+            assert_eq!(
+                board.find_attacked_bridges(attacked_coords),
+                vec![Coords { row: 0, column: 3 },]
+            );
+        }
+
+        #[test]
+        fn test_no_bridge_on_other_players_edge() {
+            let mut board = Board::new(5);
+            let attacked_coords = Coords { row: 2, column: 0 };
+            let _ = board.play(Coords { row: 2, column: 1 }, Color::Black);
+            let _ = board.play(attacked_coords, Color::White);
+
+            assert_eq!(board.find_attacked_bridges(attacked_coords), vec![]);
+        }
     }
 }

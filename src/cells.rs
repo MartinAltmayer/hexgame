@@ -46,6 +46,17 @@ impl Cells {
         (row as Index) * (self.size as Index) + (column as Index)
     }
 
+    pub fn coords_from_index(&self, index: Index) -> Coords {
+        let size = self.size as Index;
+        if index >= self.left() {
+            panic!("Index {} cannot be converted to Coords", index);
+        }
+        Coords {
+            row: (index / size) as CoordValue,
+            column: (index % size) as CoordValue,
+        }
+    }
+
     pub fn left(&self) -> Index {
         let size = self.size as Index;
         size * size
