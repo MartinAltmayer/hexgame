@@ -4,18 +4,9 @@ use crate::coords::{CoordValue, Coords};
 pub type Index = u16;
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
-pub struct Cell {
-    pub color: Option<Color>,
-    pub parent: Option<Index>,
-}
-
-impl Cell {
-    pub fn with_color(color: Color) -> Self {
-        Self {
-            color: Some(color),
-            parent: None,
-        }
-    }
+struct Cell {
+    color: Option<Color>,
+    parent: Option<Index>,
 }
 
 #[derive(Clone)]
@@ -74,16 +65,24 @@ impl Cells {
         self.left() + 3
     }
 
-    pub fn at_index(&self, index: Index) -> Cell {
-        self.vector[index as usize]
+    pub fn get_color_at_coords(&self, coords: Coords) -> Option<Color> {
+        self.get_color_at_index(self.index_from_coords(coords))
     }
 
-    pub fn at_coord(&self, coords: Coords) -> Cell {
-        self.at_index(self.index_from_coords(coords))
+    pub fn get_color_at_index(&self, index: Index) -> Option<Color> {
+        self.vector[index as usize].color
     }
 
-    pub fn set_index(&mut self, index: Index, cell: Cell) {
-        self.vector[index as usize] = cell;
+    pub fn set_color_at_index(&mut self, index: Index, color: Color) {
+        self.vector[index as usize].color = Some(color);
+    }
+
+    pub fn get_parent_at_index(&self, index: Index) -> Option<Index> {
+        self.vector[index as usize].parent
+    }
+
+    pub fn set_parent_at_index(&mut self, index: Index, parent: Index) {
+        self.vector[index as usize].parent = Some(parent);
     }
 }
 
@@ -95,7 +94,7 @@ mod tests {
     fn test_constructor() {
         let cells = Cells::new(3);
         assert_eq!(cells.size, 3);
-        assert_eq!(cells.at_coord(Coords::new(0, 0)), Cell::default());
+        assert_eq!(cells.get_color_at_coords(Coords::new(0, 0)), None);
     }
 
     #[test]
@@ -105,14 +104,19 @@ mod tests {
     }
 
     #[test]
-    fn test_set_index() {
-        let cell = Cell {
-            color: Some(Color::Black),
-            parent: None,
-        };
+    fn test_set_color_at_index() {
+        let color = Color::Black;
         let mut cells = Cells::new(3);
-        cells.set_index(5, cell);
-        assert_eq!(cells.at_index(5), cell);
-        assert_eq!(cells.at_coord(Coords::new(1, 2)), cell);
+        cells.set_color_at_index(5, color);
+        assert_eq!(cells.get_color_at_index(5), Some(color));
+        assert_eq!(cells.get_color_at_coords(Coords::new(1, 2)), Some(color));
+    }
+
+    #[test]
+    fn test_set_parent_at_index() {
+        let parent: Index = 127;
+        let mut cells = Cells::new(3);
+        cells.set_parent_at_index(5, parent);
+        assert_eq!(cells.get_parent_at_index(5), Some(parent));
     }
 }

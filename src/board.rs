@@ -1,4 +1,4 @@
-use crate::cells::{Cell, Cells, Index};
+use crate::cells::{Cells, Index};
 use crate::color::Color;
 use crate::coords::{CoordValue, Coords};
 use crate::errors::{InvalidBoard, InvalidMove};
@@ -26,7 +26,7 @@ impl Board {
         };
         for color in [Color::Black, Color::White] {
             for edge in board.get_edges(color) {
-                board.cells.set_index(edge, Cell::with_color(color));
+                board.cells.set_color_at_index(edge, color);
             }
         }
         board
@@ -66,11 +66,11 @@ impl Board {
     }
 
     pub fn get_color(&self, coords: Coords) -> Option<Color> {
-        self.cells.at_coord(coords).color
+        self.cells.get_color_at_coords(coords)
     }
 
-    fn get_color_of_index(&self, index: Index) -> Option<Color> {
-        self.cells.at_index(index).color
+    fn get_color_at_index(&self, index: Index) -> Option<Color> {
+        self.cells.get_color_at_index(index)
     }
 
     pub fn get_edges(&self, color: Color) -> [Index; 2] {
@@ -134,19 +134,13 @@ impl Board {
 
         let index = self.cells.index_from_coords(coords);
 
-        if self.cells.at_index(index).color.is_some() {
+        if self.get_color_at_index(index).is_some() {
             return Err(InvalidMove::CellOccupied(coords));
         }
 
-        self.cells.set_index(
-            index,
-            Cell {
-                color: Some(color),
-                parent: None,
-            },
-        );
-
+        self.cells.set_color_at_index(index, color);
         self.merge_with_neighbors(index, color);
+
         Ok(())
     }
 
@@ -154,7 +148,7 @@ impl Board {
         let mut iter = self.get_neighbors(index);
 
         while let Some(neighbor) = iter.next() {
-            if self.get_color_of_index(neighbor) == Some(color) {
+            if self.get_color_at_index(neighbor) == Some(color) {
                 self.merge(index, neighbor);
                 // After merging with one neighbor, we can skip the next one:
                 // If the next neighbor also has the same color,
@@ -194,7 +188,7 @@ impl Board {
         let mut string = String::with_capacity(8);
 
         for &neighbor in neighbors.iter() {
-            string.push(match self.get_color_of_index(neighbor) {
+            string.push(match self.get_color_at_index(neighbor) {
                 None => '.',
                 Some(Color::Black) => 'b',
                 Some(Color::White) => 'w',
@@ -219,18 +213,11 @@ impl Board {
 
 impl UnionFind<Index> for Board {
     fn get_parent(&self, item: Index) -> Option<Index> {
-        self.cells.at_index(item).parent
+        self.cells.get_parent_at_index(item)
     }
 
     fn set_parent(&mut self, index: Index, parent: Index) {
-        let cell = self.cells.at_index(index);
-        self.cells.set_index(
-            index,
-            Cell {
-                parent: Some(parent),
-                ..cell
-            },
-        );
+        self.cells.set_parent_at_index(index, parent);
     }
 }
 
@@ -256,19 +243,19 @@ mod tests {
         assert_eq!(board.size(), 3);
         assert!(board.get_color(Coords { row: 0, column: 0 }).is_none());
         assert_eq!(
-            board.get_color_of_index(board.cells.left()),
+            board.get_color_at_index(board.cells.left()),
             Some(Color::White)
         );
         assert_eq!(
-            board.get_color_of_index(board.cells.top()),
+            board.get_color_at_index(board.cells.top()),
             Some(Color::Black)
         );
         assert_eq!(
-            board.get_color_of_index(board.cells.bottom()),
+            board.get_color_at_index(board.cells.bottom()),
             Some(Color::Black)
         );
         assert_eq!(
-            board.get_color_of_index(board.cells.left()),
+            board.get_color_at_index(board.cells.left()),
             Some(Color::White)
         );
     }
