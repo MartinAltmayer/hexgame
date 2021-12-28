@@ -80,7 +80,7 @@ impl Board {
         }
     }
 
-    pub fn is_in_same_set(&mut self, index1: Index, index2: Index) -> bool {
+    pub fn is_in_same_set(&self, index1: Index, index2: Index) -> bool {
         self.cells.is_in_same_set(index1, index2)
     }
 
