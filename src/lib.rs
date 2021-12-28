@@ -1,10 +1,10 @@
 mod board;
-mod cells;
 mod color;
 mod coords;
 mod errors;
 mod format;
 mod game;
+mod hex_cells;
 mod serialize;
 mod union_find;
 

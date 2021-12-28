@@ -1,7 +1,7 @@
-use crate::cells::{Cells, Index};
 use crate::color::Color;
 use crate::coords::{CoordValue, Coords};
 use crate::errors::{InvalidBoard, InvalidMove};
+use crate::hex_cells::{HexCells, Index};
 use crate::union_find::UnionFind;
 use std::iter;
 use std::iter::Iterator;
@@ -15,14 +15,14 @@ pub type StoneMatrix = Vec<Vec<Option<Color>>>;
 
 #[derive(Clone)]
 pub struct Board {
-    cells: Cells,
+    cells: HexCells,
 }
 
 impl Board {
     pub fn new(size: CoordValue) -> Self {
         check_board_size(size as usize).expect("Invalid size");
         let mut board = Self {
-            cells: Cells::new(size),
+            cells: HexCells::new(size),
         };
         for color in [Color::Black, Color::White] {
             for edge in board.get_edges(color) {

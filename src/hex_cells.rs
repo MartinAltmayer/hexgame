@@ -5,24 +5,24 @@ use crate::union_find::UnionFind;
 pub type Index = u16;
 
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq)]
-struct Cell {
+struct HexCell {
     color: Option<Color>,
     parent: Option<Index>,
 }
 
 #[derive(Clone)]
-pub struct Cells {
+pub struct HexCells {
     pub size: CoordValue,
     // layout is [normal cells by index=row*size + column; left, top, right, bottom]
-    vector: Vec<Cell>,
+    vector: Vec<HexCell>,
 }
 
-impl Cells {
+impl HexCells {
     pub fn new(size: CoordValue) -> Self {
         let item_count = (size as Index) * (size as Index) + 4;
         Self {
             size,
-            vector: vec![Cell::default(); item_count as usize],
+            vector: vec![HexCell::default(); item_count as usize],
         }
     }
 
@@ -87,7 +87,7 @@ impl Cells {
     }
 }
 
-impl UnionFind<Index> for Cells {
+impl UnionFind<Index> for HexCells {
     fn get_parent(&self, item: Index) -> Option<Index> {
         self.get_parent_at_index(item)
     }
@@ -103,21 +103,21 @@ mod tests {
 
     #[test]
     fn test_constructor() {
-        let cells = Cells::new(3);
+        let cells = HexCells::new(3);
         assert_eq!(cells.size, 3);
         assert_eq!(cells.get_color_at_coords(Coords::new(0, 0)), None);
     }
 
     #[test]
     fn test_index_from_coords() {
-        let cells = Cells::new(3);
+        let cells = HexCells::new(3);
         assert_eq!(cells.index_from_coords(Coords::new(1, 2)), 5);
     }
 
     #[test]
     fn test_set_color_at_index() {
         let color = Color::Black;
-        let mut cells = Cells::new(3);
+        let mut cells = HexCells::new(3);
         cells.set_color_at_index(5, color);
         assert_eq!(cells.get_color_at_index(5), Some(color));
         assert_eq!(cells.get_color_at_coords(Coords::new(1, 2)), Some(color));
@@ -126,7 +126,7 @@ mod tests {
     #[test]
     fn test_set_parent_at_index() {
         let parent: Index = 127;
-        let mut cells = Cells::new(3);
+        let mut cells = HexCells::new(3);
         cells.set_parent_at_index(5, parent);
         assert_eq!(cells.get_parent_at_index(5), Some(parent));
     }
