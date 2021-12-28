@@ -80,6 +80,10 @@ impl Board {
         }
     }
 
+    pub fn is_in_same_set(&mut self, index1: Index, index2: Index) -> bool {
+        self.cells.is_in_same_set(index1, index2)
+    }
+
     fn get_neighbors(&self, index: Index) -> impl Iterator<Item = Index> {
         let size = self.cells.size as Index;
         let left_neighbor = if index % size == 0 {
@@ -149,7 +153,7 @@ impl Board {
 
         while let Some(neighbor) = iter.next() {
             if self.get_color_at_index(neighbor) == Some(color) {
-                self.merge(index, neighbor);
+                self.cells.merge(index, neighbor);
                 // After merging with one neighbor, we can skip the next one:
                 // If the next neighbor also has the same color,
                 // then it must already be part of the same set.
@@ -208,16 +212,6 @@ impl Board {
         }
 
         result
-    }
-}
-
-impl UnionFind<Index> for Board {
-    fn get_parent(&self, item: Index) -> Option<Index> {
-        self.cells.get_parent_at_index(item)
-    }
-
-    fn set_parent(&mut self, index: Index, parent: Index) {
-        self.cells.set_parent_at_index(index, parent);
     }
 }
 

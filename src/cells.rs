@@ -1,5 +1,6 @@
 use crate::color::Color;
 use crate::coords::{CoordValue, Coords};
+use crate::union_find::UnionFind;
 
 pub type Index = u16;
 
@@ -83,6 +84,16 @@ impl Cells {
 
     pub fn set_parent_at_index(&mut self, index: Index, parent: Index) {
         self.vector[index as usize].parent = Some(parent);
+    }
+}
+
+impl UnionFind<Index> for Cells {
+    fn get_parent(&self, item: Index) -> Option<Index> {
+        self.get_parent_at_index(item)
+    }
+
+    fn set_parent(&mut self, index: Index, parent: Index) {
+        self.set_parent_at_index(index, parent);
     }
 }
 

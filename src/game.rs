@@ -2,7 +2,6 @@ use crate::board::{Board, StoneMatrix};
 use crate::color::Color;
 use crate::coords::{CoordValue, Coords};
 use crate::errors::{InvalidBoard, InvalidMove};
-use crate::union_find::UnionFind;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Status {
