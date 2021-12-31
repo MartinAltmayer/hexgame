@@ -178,37 +178,55 @@ impl Board {
     }
 
     pub fn find_attacked_bridges(&self, coords: Coords) -> Vec<Coords> {
-        let mut result = vec![];
-        let search_string = match self.get_color(coords) {
+        let center_index = self.cells.index_from_coords(coords);
+        let search_color = match self.get_color_at_index(center_index) {
             None => return vec![],
-            Some(Color::Black) => "w.w",
-            Some(Color::White) => "b.b",
+            Some(color) => color.opponent_color(),
         };
 
-        let neighbors: Vec<Index> = self
-            .get_neighbors(self.cells.index_from_coords(coords))
-            .collect();
+        // Essentially, the following code will search for the pattern [Some(search_color), None, Some(search_color)]
+        // in the colors of the neighbors of `coords`. To find bridges that span the
 
-        let mut string = String::with_capacity(8);
+        // Bridges may cross the end of the get_neighbors-iterator (e.g. the last element + the first two elements).
+        // For this reason we extend the array of neighbors by the first two neighbors.
+        // Unfortunately, we cannot know the number of neighbors (typically 6, but less on the edges).
+        // Note that we initialize the array with `center_index` which is guaranteed to not match any part of the pattern.
+        let mut neighbors: [Index; 8] = [center_index; 8];
+        let neighbor_count = copy_into_array(&mut neighbors, 0, self.get_neighbors(center_index));
+        neighbors[neighbor_count] = neighbors[0];
+        neighbors[neighbor_count + 1] = neighbors[1];
 
-        for &neighbor in neighbors.iter() {
-            string.push(match self.get_color_at_index(neighbor) {
-                None => '.',
-                Some(Color::Black) => 'b',
-                Some(Color::White) => 'w',
-            });
-        }
+        let mut result = vec![];
+        // `state` describes how many fields of the pattern [Some(search_color), None, Some(search_color)] we've already found.
+        let mut state = FindAttackedBridgesState::Found0;
 
-        string.push_str(&string[0..2].to_string());
-
-        let mut index = 0;
-
-        while let Some(found_index) = string[index..].find(search_string) {
-            let matched_index = index + found_index;
-            let attacked_bridge = neighbors[(matched_index + 1) % neighbors.len()];
-
-            result.push(self.cells.coords_from_index(attacked_bridge));
-            index = matched_index + 2; // if we've found "w w", continue search on the second "w"
+        for (i, neighbor) in neighbors.iter().enumerate() {
+            let color = self.get_color_at_index(*neighbor);
+            match state {
+                FindAttackedBridgesState::Found0 => {
+                    if color == Some(search_color) {
+                        state = FindAttackedBridgesState::Found1;
+                    }
+                }
+                FindAttackedBridgesState::Found1 => {
+                    if color.is_none() {
+                        state = FindAttackedBridgesState::Found2;
+                    } else if color != Some(search_color) {
+                        state = FindAttackedBridgesState::Found0;
+                    }
+                    // else: remain in state Found1, because we already have the beginning of a possible new match.
+                }
+                FindAttackedBridgesState::Found2 => {
+                    if color == Some(search_color) {
+                        result.push(self.cells.coords_from_index(neighbors[i - 1]));
+                        // It is important to also find overlapping matches.
+                        // The third part of the current bridge may be the first part of a new bridge.
+                        state = FindAttackedBridgesState::Found1;
+                    } else {
+                        state = FindAttackedBridgesState::Found0;
+                    }
+                }
+            }
         }
 
         result
@@ -225,6 +243,25 @@ fn check_board_size(input: usize) -> Result<CoordValue, InvalidBoard> {
             MIN_BOARD_SIZE,
             MAX_BOARD_SIZE,
         ))
+}
+
+fn copy_into_array<T, TIter: Iterator<Item = T>, const N: usize>(
+    array: &mut [T; N],
+    start_index: usize,
+    iterator: TIter,
+) -> usize {
+    let mut index = start_index;
+    for item in iterator {
+        array[index] = item;
+        index += 1;
+    }
+    index
+}
+
+enum FindAttackedBridgesState {
+    Found0,
+    Found1,
+    Found2,
 }
 
 #[cfg(test)]
@@ -585,6 +622,11 @@ mod test_neighbors {
 
         #[test]
         fn test_simple_bridge_in_center() {
+            //  a  b  c  d  e
+            // 1\.  .  .  .  .\1
+            //  2\.  .  .  ●  .\2
+            //   3\.  .  ○  .  .\3
+            //    4\.  .  ●  .  .\4
             let mut board = Board::new(5);
             let _ = board.play(Coords { row: 1, column: 3 }, Color::Black);
             let _ = board.play(Coords { row: 3, column: 2 }, Color::Black);
@@ -597,7 +639,45 @@ mod test_neighbors {
         }
 
         #[test]
+        fn test_bridge_with_preceding_stone_in_center() {
+            //  a  b  c  d  e
+            // 1\.  .  .  .  .\1
+            //  2\.  .  ●  .  .\2
+            //   3\.  ●  ○  ●  .\3
+            let mut board = Board::new(5);
+            let _ = board.play(Coords { row: 2, column: 1 }, Color::Black);
+            let _ = board.play(Coords { row: 1, column: 2 }, Color::Black);
+            let _ = board.play(Coords { row: 2, column: 3 }, Color::Black);
+            let _ = board.play(CENTER, Color::White);
+
+            assert_eq!(
+                board.find_attacked_bridges(CENTER),
+                vec![Coords { row: 1, column: 3 }]
+            );
+        }
+
+        #[test]
+        fn test_non_bridge_with_preceding_stone_in_center() {
+            //  a  b  c  d  e
+            // 1\.  .  .  .  .\1
+            //  2\.  .  ○  .  .\2
+            //   3\.  ●  ○  ●  .\3
+            let mut board = Board::new(5);
+            let _ = board.play(Coords { row: 2, column: 1 }, Color::Black);
+            let _ = board.play(Coords { row: 1, column: 2 }, Color::White);
+            let _ = board.play(Coords { row: 2, column: 3 }, Color::Black);
+            let _ = board.play(CENTER, Color::White);
+
+            assert_eq!(board.find_attacked_bridges(CENTER), vec![]);
+        }
+
+        #[test]
         fn test_three_bridges_in_center() {
+            //  a  b  c  d  e
+            // 1\.  .  .  .  .\1
+            //  2\.  .  .  ●  .\2
+            //   3\.  ●  ○  .  .\3
+            //    4\.  .  ●  .  .\4
             let mut board = Board::new(5);
             let _ = board.play(Coords { row: 2, column: 1 }, Color::Black);
             let _ = board.play(Coords { row: 1, column: 3 }, Color::Black);
@@ -615,7 +695,12 @@ mod test_neighbors {
         }
 
         #[test]
-        fn test_bridge_from_overlapping_from_last_to_first_neighbor() {
+        fn test_bridge_overlapping_from_last_to_first_neighbor() {
+            //  a  b  c  d  e
+            // 1\.  .  .  .  .\1
+            //  2\.  .  ●  .  .\2
+            //   3\.  .  ○  .  .\3
+            //    4\.  ●  .  .  .\4
             let mut board = Board::new(5);
             let _ = board.play(Coords { row: 3, column: 1 }, Color::Black);
             let _ = board.play(Coords { row: 1, column: 2 }, Color::Black);
@@ -629,6 +714,9 @@ mod test_neighbors {
 
         #[test]
         fn test_bridge_in_obtuse_corner() {
+            //  a  b  c  d  e
+            // 1\.  ○  .  .  .\1
+            //  2\●  .  .  .  .\2
             let mut board = Board::new(5);
             let attacked_coords = Coords { row: 0, column: 1 };
             let _ = board.play(Coords { row: 1, column: 0 }, Color::Black);
@@ -642,6 +730,9 @@ mod test_neighbors {
 
         #[test]
         fn test_bridge_next_to_obtuse_corner() {
+            //  a  b  c  d  e
+            // 1\○  .  .  .  .\1
+            //  2\●  .  .  .  .\2
             let mut board = Board::new(5);
             let attacked_coords = Coords { row: 0, column: 0 };
             let _ = board.play(Coords { row: 1, column: 0 }, Color::Black);
@@ -655,6 +746,9 @@ mod test_neighbors {
 
         #[test]
         fn test_bridge_to_own_edge() {
+            //  a  b  c  d  e
+            // 1\.  .  ○  .  .\1
+            //  2\.  .  ●  .  .\2
             let mut board = Board::new(5);
             let attacked_coords = Coords { row: 0, column: 2 };
             let _ = board.play(Coords { row: 1, column: 2 }, Color::Black);
@@ -668,6 +762,10 @@ mod test_neighbors {
 
         #[test]
         fn test_no_bridge_on_other_players_edge() {
+            //  a  b  c  d  e
+            // 1\.  .  .  .  .\1
+            //  2\.  .  .  .  .\2
+            //   3\○  ●  .  .  .\3
             let mut board = Board::new(5);
             let attacked_coords = Coords { row: 2, column: 0 };
             let _ = board.play(Coords { row: 2, column: 1 }, Color::Black);
