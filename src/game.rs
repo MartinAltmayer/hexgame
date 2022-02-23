@@ -3,20 +3,32 @@ use crate::color::Color;
 use crate::coords::{CoordValue, Coords};
 use crate::errors::{InvalidBoard, InvalidMove};
 
+/// Status of a game.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Status {
+    /// Game has not yet ended.
     Ongoing,
+    /// Game has been finished. The `Color` indicates which player has won the game.
+    /// Note that a game of Hex never ends in a draw.
     Finished(Color),
 }
 
+/// `Game` holds the full state of a game of Hex and allows to manipulate this state by playing valid moves.
+///
+/// The game state consists of a board (`get_board`) and the current player (`get_current_player`).
 #[derive(Clone)]
 pub struct Game {
-    pub board: Board,
-    pub current_player: Color,
-    pub status: Status,
+    board: Board,
+    current_player: Color,
+    status: Status,
 }
 
 impl Game {
+    /// Create a new game with the given board size. Boards are always square.
+    ///
+    /// Games always start with black.
+    ///
+    /// This method will panic if the size is not bounded by `MIN_BOARD_SIZE` and `MAX_BOARD_SIZE`.
     pub fn new(size: CoordValue) -> Game {
         Game {
             board: Board::new(size),
@@ -25,9 +37,29 @@ impl Game {
         }
     }
 
+    /// Return the game's board.
+    pub fn get_board(&self) -> &Board {
+        &self.board
+    }
+
+    /// Return the current player. If the game has ended, this method will return some player, but behavior is undefined.
+    /// TODO: return Option<Color> to tidy this up
+    pub fn get_current_player(&self) -> Color {
+        self.current_player
+    }
+
+    // Get the game's status.
+    pub fn get_status(&self) -> Status {
+        self.status
+    }
+
+    /// Load a game from a `StoneMatrix`.
+    ///
+    /// Please also have a look at the `Serialization` trait which allows to directly deserialize a game from JSON.
+    /// TODO: can we restrict the visibility of this method to the crate? There is no analogous "save" method.
     pub fn load(stones: StoneMatrix, current_player: Color) -> Result<Self, InvalidBoard> {
         let mut board = Board::from_stone_matrix(stones)?;
-        let status = Self::get_status(&mut board);
+        let status = Self::compute_status(&mut board);
         Ok(Self {
             board,
             current_player,
@@ -35,6 +67,9 @@ impl Game {
         })
     }
 
+    /// Let the current player place a stone at the given coordinates.
+    /// If the move is invalid, this method returns an error.
+    /// This method will automatically update the current player.
     pub fn play(&mut self, coords: Coords) -> Result<(), InvalidMove> {
         if let Status::Finished(_) = self.status {
             return Err(InvalidMove::GameOver);
@@ -51,7 +86,7 @@ impl Game {
         Ok(())
     }
 
-    fn get_status(board: &mut Board) -> Status {
+    fn compute_status(board: &mut Board) -> Status {
         if Self::is_finished_after_player(board, Color::Black) {
             return Status::Finished(Color::Black);
         } else if Self::is_finished_after_player(board, Color::White) {

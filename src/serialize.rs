@@ -28,9 +28,9 @@ struct StoredGame {
 impl Serialization for Game {
     fn save_to_json(&self) -> Value {
         let stored_game = StoredGame {
-            size: self.board.size(),
-            current_player: serialize_color(&Some(self.current_player)),
-            stones: store_stone_matrix(&self.board.to_stone_matrix()),
+            size: self.get_board().size(),
+            current_player: serialize_color(&Some(self.get_current_player())),
+            stones: store_stone_matrix(&self.get_board().to_stone_matrix()),
         };
 
         serde_json::to_value(&stored_game).expect("Game serialization failed")
@@ -121,18 +121,24 @@ mod tests {
 
         let game = Game::load_from_json(data).unwrap();
 
-        assert_eq!(game.board.size(), 2);
-        assert_eq!(game.current_player, Color::Black);
-        assert_eq!(game.board.get_color(Coords { row: 0, column: 0 }), None);
+        assert_eq!(game.get_board().size(), 2);
+        assert_eq!(game.get_current_player(), Color::Black);
         assert_eq!(
-            game.board.get_color(Coords { row: 0, column: 1 }),
+            game.get_board().get_color(Coords { row: 0, column: 0 }),
+            None
+        );
+        assert_eq!(
+            game.get_board().get_color(Coords { row: 0, column: 1 }),
             Some(Color::Black)
         );
         assert_eq!(
-            game.board.get_color(Coords { row: 1, column: 0 }),
+            game.get_board().get_color(Coords { row: 1, column: 0 }),
             Some(Color::White)
         );
-        assert_eq!(game.board.get_color(Coords { row: 1, column: 1 }), None);
+        assert_eq!(
+            game.get_board().get_color(Coords { row: 1, column: 1 }),
+            None
+        );
     }
 
     #[test]
@@ -155,7 +161,7 @@ mod tests {
 
         let game = Game::load_from_json(data).unwrap();
 
-        assert_eq!(game.current_player, Color::White);
+        assert_eq!(game.get_current_player(), Color::White);
     }
 
     #[test]
@@ -181,11 +187,11 @@ mod tests {
         let string = game.save_to_string();
         let loaded_game = Game::load_from_str(&string).unwrap();
 
-        assert_eq!(game.board.size(), loaded_game.board.size());
-        assert_eq!(game.current_player, loaded_game.current_player);
+        assert_eq!(game.get_board().size(), loaded_game.get_board().size());
+        assert_eq!(game.get_current_player(), loaded_game.get_current_player());
         assert_eq!(
-            game.board.to_stone_matrix(),
-            loaded_game.board.to_stone_matrix()
+            game.get_board().to_stone_matrix(),
+            loaded_game.get_board().to_stone_matrix()
         );
     }
 }

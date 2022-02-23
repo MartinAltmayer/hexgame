@@ -17,16 +17,16 @@ fn main() {
     };
 
     let mut game = Game::new(size);
-    println!("{}", &game.board);
+    println!("{}", &game.get_board());
 
     loop {
-        match game.status {
+        match game.get_status() {
             Status::Ongoing => {
                 let result = request_coords(&game).and_then(|coords| play(&mut game, coords));
 
                 match result {
                     Ok(_) => {
-                        println!("{}", &game.board);
+                        println!("{}", game.get_board());
                     }
                     Err(error) => {
                         println!("Error: {}", error);
@@ -62,17 +62,17 @@ fn read_size() -> std::io::Result<CoordValue> {
 
 fn check_size(size: CoordValue) -> std::io::Result<CoordValue> {
     if (MIN_BOARD_SIZE..=MAX_BOARD_SIZE).contains(&size) {
+        Ok(size)
+    } else {
         Err(invalid_input(&format!(
             "Size must be between {} and {}",
             MIN_BOARD_SIZE, MAX_BOARD_SIZE
         )))
-    } else {
-        Ok(size)
     }
 }
 
 fn request_coords(game: &Game) -> Result<Coords, io::Error> {
-    let player = match game.current_player {
+    let player = match game.get_current_player() {
         Color::Black => "BLACK",
         Color::White => "WHITE",
     };
@@ -82,7 +82,7 @@ fn request_coords(game: &Game) -> Result<Coords, io::Error> {
     );
     io::stdout().flush()?;
 
-    read_coords(&mut io::stdin().lock(), game.board.size())
+    read_coords(&mut io::stdin().lock(), game.get_board().size())
 }
 
 fn read_coords<Reader: io::BufRead>(

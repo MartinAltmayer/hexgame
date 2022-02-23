@@ -6,19 +6,59 @@ use crate::union_find::UnionFind;
 use std::iter;
 use std::iter::Iterator;
 
-// Neighbor calculations assume size >= 2
+/// Minimal supported board size
+/// # (Some neighbor calculations assume that the size is at least 2.)
 pub const MIN_BOARD_SIZE: CoordValue = 2;
-// Technically, we support much larger boards, but future optimizations may restrict this.
+/// Maximal supported board size
+/// # (Technically, we support much larger boards, but future optimizations may restrict this.)
 pub const MAX_BOARD_SIZE: CoordValue = 19;
 
+/// This type represents the board as a matrix of `Option<Color>`. It may be used to serialize/deserialize boards.
+///
+/// Each entry represents the stone placed on the respective cell, with `None` representing an empty cell.
+///
+/// The following board will be represented as `vec![vec![None, Some(Color::Black)], vec![Some(Color::White), None]]`:
+/// ```text
+///  0  1
+/// 0\.  ●\0
+///  1\○  .\1
+///     0  1
+/// ```
+///
 pub type StoneMatrix = Vec<Vec<Option<Color>>>;
 
+/// `Board` represents the Hex board and all placed stones.
+///
+/// The `play` method can be used to place stones on the board.
+/// Note that `Board` has no notion of a current player and will allow to place any amount of stones in any color.
+///
+/// A nice human-readable format can be obtained via the `Display` trait:
+/// ```
+/// use hexgame::{Board, Color, Coords}
+/// let mut board = Board::new(5);
+/// board.play(Coords::new(1, 3), Color::Black);
+/// board.play(Coords::new(0, 2), Color::White);
+/// println!("{}", board);
+/// ```
+/// will output
+/// ```text
+///  a  b  c  d  e
+/// 1\.  .  ○  .  .\1
+///  2\.  .  .  ●  .\2
+///   3\.  .  .  .  .\3
+///    4\.  .  .  .  .\4
+///     5\.  .  .  .  .\5
+///        a  b  c  d  e
+/// ```
 #[derive(Clone)]
 pub struct Board {
     cells: HexCells,
 }
 
 impl Board {
+    /// Create a new board with the given size. Boards are always square.
+    ///
+    /// This method will panic if the size is not bounded by `MIN_BOARD_SIZE` and `MAX_BOARD_SIZE`.
     pub fn new(size: CoordValue) -> Self {
         check_board_size(size as usize).expect("Invalid size");
         let mut board = Self {
@@ -32,6 +72,7 @@ impl Board {
         board
     }
 
+    /// Load a board from a `StoneMatrix`.
     pub fn from_stone_matrix(stones: StoneMatrix) -> Result<Self, InvalidBoard> {
         let size = check_board_size(stones.len())?;
         let mut board = Self::new(size);
@@ -51,6 +92,7 @@ impl Board {
         Ok(board)
     }
 
+    /// Convert this board to a `StoneMatrix`.
     pub fn to_stone_matrix(&self) -> StoneMatrix {
         (0..self.size())
             .map(|row| {
@@ -61,10 +103,13 @@ impl Board {
             .collect()
     }
 
+    /// Return the size of this board. Boards are always square.
     pub fn size(&self) -> CoordValue {
         self.cells.size
     }
 
+    /// Return the color at the given coordinates.
+    /// If no stone has been placed in the given cell, this method will return None.
     pub fn get_color(&self, coords: Coords) -> Option<Color> {
         self.cells.get_color_at_coords(coords)
     }
@@ -73,6 +118,8 @@ impl Board {
         self.cells.get_color_at_index(index)
     }
 
+    /// TODO: can we restrict the visibility this method and is_in_same_set to this crate?
+    /// These are the only methods that expose `Index`.
     pub fn get_edges(&self, color: Color) -> [Index; 2] {
         match color {
             Color::Black => [self.cells.top(), self.cells.bottom()],
@@ -162,6 +209,7 @@ impl Board {
         }
     }
 
+    /// Return all empty cells.
     pub fn get_empty_cells(&self) -> Vec<Coords> {
         let size = self.size() as usize;
         let mut result = Vec::with_capacity(size * size);

@@ -4,6 +4,12 @@ use crate::color::Color;
 use crate::coords::{CoordValue, Coords};
 use crate::union_find::UnionFind;
 
+/// This type can be used to refer to a cell (like `Coords`) or to an edge (top/left/right/bottom).
+///
+/// The `Index` values for a given cell or edge depend on the memory layout used by `hexgame` and are not guaranteed to remain stable.
+/// For this reason `Index` values should be treated as opaque.
+///
+/// TODO: Do we need to expose the `Index` type?
 pub type Index = u16;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]

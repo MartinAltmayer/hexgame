@@ -2,10 +2,14 @@ use crate::coords::{CoordValue, Coords};
 use std::error::Error;
 use std::fmt;
 
+/// This enum is returned by `game.play` when the given move is invalid.
 #[derive(Debug, PartialEq)]
 pub enum InvalidMove {
+    /// The game has ended, thus no further move is possible.
     GameOver,
+    /// The player attempted to play on coordinates that are not on the game's board.
     OutOfBounds(Coords),
+    /// The player attempted to play on coordinates that are already occupied.
     CellOccupied(Coords),
 }
 
@@ -25,9 +29,14 @@ impl fmt::Display for InvalidMove {
 
 impl Error for InvalidMove {}
 
+/// This error may be returned by methods that load a board from serialized data.
 #[derive(Debug, PartialEq)]
 pub enum InvalidBoard {
+    /// The size of the serialized board is not supported. Board sizes must be bounded by `MIN_BOARD_SIZE` and `MAX_BOARD_SIZE`.
+    /// The values contained in this error are: the size of the serialized data, the minimal supported size, and the maximal supported size.
     SizeOutOfBounds(usize, CoordValue, CoordValue),
+    /// The serialized board is not square, i.e. at least one row has more/less entries than there are rows.
+    /// The values contained in this error are: the detected board size (number of rows) and the index of the row where the problem occurred.
     NotSquare(CoordValue, CoordValue),
 }
 

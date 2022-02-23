@@ -5,6 +5,18 @@ use crate::color::Color;
 use crate::coords::{to_column_char, CoordValue, Coords};
 
 impl fmt::Display for Board {
+    /// Pretty human-readable format for boards.
+    ///
+    /// Example:
+    /// ```text
+    ///  a  b  c  d  e
+    /// 1\.  .  .  .  .\1
+    ///  2\.  ●  .  ○  .\2
+    ///   3\.  .  ●  .  .\3
+    ///    4\.  .  .  ○  .\4
+    ///     5\.  .  .  .  .\5
+    ///        a  b  c  d  e
+    /// ```
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write_column_labels(f, self.size(), 0)?;
 
