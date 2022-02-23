@@ -5,6 +5,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::io::{Error, ErrorKind, Result};
 
+const VERSION: u8 = 1;
+
 /// This trait is implemented by Game and can be used to serialize/deserialize Hex games to/from strings or JSON.
 pub trait Serialization: Sized {
     /// Save this game as a Serde JSON value
@@ -25,6 +27,7 @@ pub trait Serialization: Sized {
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct StoredGame {
+    version: u8,
     size: CoordValue,
     current_player: u8,
     stones: Vec<Vec<u8>>,
@@ -33,6 +36,7 @@ struct StoredGame {
 impl Serialization for Game {
     fn save_to_json(&self) -> Value {
         let stored_game = StoredGame {
+            version: VERSION,
             size: self.get_board().size(),
             current_player: serialize_color(&Some(self.get_current_player())),
             stones: store_stone_matrix(&self.get_board().to_stone_matrix()),
@@ -43,6 +47,14 @@ impl Serialization for Game {
 
     fn load_from_json(value: Value) -> Result<Self> {
         let stored_game: StoredGame = serde_json::from_value(value)?;
+
+        if stored_game.version != VERSION {
+            return Err(invalid_data(format!(
+                "Unsupported version: {}",
+                stored_game.version
+            )));
+        }
+
         let stones = load_stone_matrix(&stored_game.stones)?;
         let current_player =
             deserialize_color(&stored_game.current_player).and_then(|maybe_color| {
@@ -109,6 +121,7 @@ mod tests {
         assert_eq!(
             data,
             json!({
+                "version": VERSION,
                 "size": 2,
                 "currentPlayer": 1,
                 "stones": [[0, 1], [2, 0]]
@@ -119,6 +132,7 @@ mod tests {
     #[test]
     fn test_deserialize() {
         let data = json!({
+            "version": VERSION,
             "size": 2,
             "currentPlayer": 1,
             "stones": [[0, 1], [2, 0]]
@@ -159,6 +173,7 @@ mod tests {
     #[test]
     fn test_deserialize_white_as_current_player() {
         let data = json!({
+            "version": VERSION,
             "size": 2,
             "currentPlayer": 2,
             "stones": [[1, 0], [0, 0]],
@@ -172,6 +187,21 @@ mod tests {
     #[test]
     fn test_deserialize_invalid_current_player() {
         let data = json!({
+            "version": VERSION,
+            "size": 2,
+            "currentPlayer": 0,
+            "stones": [[1, 0], [0, 0]],
+        });
+
+        let result = Game::load_from_json(data);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_deserialize_with_invalid_version() {
+        let data = json!({
+            "version": VERSION + 1,
             "size": 2,
             "currentPlayer": 0,
             "stones": [[1, 0], [0, 0]],

@@ -34,7 +34,7 @@ pub type StoneMatrix = Vec<Vec<Option<Color>>>;
 ///
 /// A nice human-readable format can be obtained via the `Display` trait:
 /// ```
-/// use hexgame::{Board, Color, Coords}
+/// use hexgame::{Board, Color, Coords};
 /// let mut board = Board::new(5);
 /// board.play(Coords::new(1, 3), Color::Black);
 /// board.play(Coords::new(0, 2), Color::White);
