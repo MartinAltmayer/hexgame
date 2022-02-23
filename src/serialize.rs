@@ -5,12 +5,17 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::io::{Error, ErrorKind, Result};
 
+/// This trait is implemented by Game and can be used to serialize/deserialize Hex games to/from strings or JSON.
 pub trait Serialization: Sized {
+    /// Save this game as a Serde JSON value
     fn save_to_json(&self) -> serde_json::Value;
+    /// Save this game to a JSON string.
     fn save_to_string(&self) -> String {
         self.save_to_json().to_string()
     }
+    /// Load a game from a Serde JSON value.
     fn load_from_json(value: Value) -> Result<Self>;
+    /// Load a game from a JSON string.
     fn load_from_str(string: &str) -> Result<Self> {
         let value: Value = serde_json::from_str(string)?;
         Self::load_from_json(value)

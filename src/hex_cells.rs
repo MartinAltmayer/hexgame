@@ -21,7 +21,7 @@ struct HexCell {
 #[derive(Clone)]
 pub struct HexCells {
     pub size: CoordValue,
-    // layout is [normal cells by index=row*size + column; left, top, right, bottom]
+    // layout is a vector with format [normal cells using index=row*size + column; left, top, right, bottom]
     vector: Vec<HexCell>,
 }
 
