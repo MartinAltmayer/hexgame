@@ -1,6 +1,7 @@
 use crate::attacked_bridges::find_attacked_bridges;
 use crate::color::Color;
 use crate::coords::{CoordValue, Coords};
+use crate::edges::{set_edge_colors, CoordsOrEdge};
 use crate::errors::{InvalidBoard, InvalidMove};
 use crate::hex_cells::{HexCells, Index};
 use crate::neighbors::get_neighbors;
@@ -62,15 +63,9 @@ impl Board {
     /// This method will panic if the size is not bounded by `MIN_BOARD_SIZE` and `MAX_BOARD_SIZE`.
     pub fn new(size: CoordValue) -> Self {
         check_board_size(size as usize).expect("Invalid size");
-        let mut board = Self {
-            cells: HexCells::new(size),
-        };
-        for color in [Color::Black, Color::White] {
-            for edge in board.get_edges(color) {
-                board.cells.set_color_at_index(edge, color);
-            }
-        }
-        board
+        let mut cells = HexCells::new(size);
+        set_edge_colors(&mut cells);
+        Self { cells }
     }
 
     /// Load a board from a `StoneMatrix`.
@@ -109,27 +104,22 @@ impl Board {
         self.cells.size
     }
 
-    /// Return the color at the given coordinates.
+    /// Return the color at the given coordinates or edge.
     /// If no stone has been placed in the given cell, this method will return None.
-    pub fn get_color(&self, coords: Coords) -> Option<Color> {
-        self.cells.get_color_at_coords(coords)
+    pub fn get_color<T: Into<CoordsOrEdge>>(&self, coords_or_edge: T) -> Option<Color> {
+        self.cells
+            .get_color_at_index(self.cells.index_from_coords_or_edge(coords_or_edge.into()))
     }
 
     fn get_color_at_index(&self, index: Index) -> Option<Color> {
         self.cells.get_color_at_index(index)
     }
 
-    /// TODO: can we restrict the visibility this method and is_in_same_set to this crate?
-    /// These are the only methods that expose `Index`.
-    pub fn get_edges(&self, color: Color) -> [Index; 2] {
-        match color {
-            Color::Black => [self.cells.top(), self.cells.bottom()],
-            Color::White => [self.cells.left(), self.cells.right()],
-        }
-    }
-
-    pub fn is_in_same_set(&self, index1: Index, index2: Index) -> bool {
-        self.cells.is_in_same_set(index1, index2)
+    pub fn is_in_same_set<S: Into<CoordsOrEdge>, T: Into<CoordsOrEdge>>(&self, s: S, t: T) -> bool {
+        self.cells.is_in_same_set(
+            self.cells.index_from_coords_or_edge(s.into()),
+            self.cells.index_from_coords_or_edge(t.into()),
+        )
     }
 
     pub fn play(&mut self, coords: Coords, color: Color) -> Result<(), InvalidMove> {
@@ -179,6 +169,7 @@ impl Board {
         result
     }
 
+    // TODO: Write docs
     pub fn find_attacked_bridges(&self, coords: Coords) -> Vec<Coords> {
         find_attacked_bridges(&self.cells, coords)
     }
@@ -198,6 +189,8 @@ fn check_board_size(input: usize) -> Result<CoordValue, InvalidBoard> {
 
 #[cfg(test)]
 mod tests {
+    use crate::edges::Edge;
+
     use super::*;
 
     #[test]
@@ -205,22 +198,10 @@ mod tests {
         let board = Board::new(3);
         assert_eq!(board.size(), 3);
         assert!(board.get_color(Coords { row: 0, column: 0 }).is_none());
-        assert_eq!(
-            board.get_color_at_index(board.cells.left()),
-            Some(Color::White)
-        );
-        assert_eq!(
-            board.get_color_at_index(board.cells.top()),
-            Some(Color::Black)
-        );
-        assert_eq!(
-            board.get_color_at_index(board.cells.bottom()),
-            Some(Color::Black)
-        );
-        assert_eq!(
-            board.get_color_at_index(board.cells.left()),
-            Some(Color::White)
-        );
+        assert_eq!(board.get_color(Edge::Left), Some(Color::White));
+        assert_eq!(board.get_color(Edge::Top), Some(Color::Black));
+        assert_eq!(board.get_color(Edge::Right), Some(Color::White));
+        assert_eq!(board.get_color(Edge::Bottom), Some(Color::Black));
     }
 
     #[test]
@@ -331,48 +312,41 @@ mod tests {
     fn test_merge_neighbors_of_own_color() {
         let mut board = Board::new(5);
         let center = Coords { row: 2, column: 2 };
-        let center_index = board.cells.index_from_coords(center);
         let neighbor1 = Coords { row: 1, column: 2 };
-        let neighbor1_index = board.cells.index_from_coords(neighbor1);
         let neighbor2 = Coords { row: 3, column: 2 };
-        let neighbor2_index = board.cells.index_from_coords(neighbor2);
         board.play(neighbor1, Color::Black).unwrap();
         board.play(neighbor2, Color::Black).unwrap();
 
-        assert!(!board.is_in_same_set(neighbor1_index, neighbor2_index));
+        assert!(!board.is_in_same_set(neighbor1, neighbor2));
 
         board.play(center, Color::Black).unwrap();
 
-        assert!(board.is_in_same_set(neighbor1_index, neighbor2_index));
-        assert!(board.is_in_same_set(center_index, neighbor2_index));
+        assert!(board.is_in_same_set(neighbor1, neighbor2));
+        assert!(board.is_in_same_set(center, neighbor2));
     }
 
     #[test]
     fn test_do_not_merge_neighbors_of_other_color() {
         let mut board = Board::new(5);
         let center = Coords { row: 2, column: 2 };
-        let center_index = board.cells.index_from_coords(center);
         let neighbor = Coords { row: 1, column: 2 };
-        let neighbor_index = board.cells.index_from_coords(neighbor);
 
         board.play(neighbor, Color::White).unwrap();
         board.play(center, Color::Black).unwrap();
 
-        assert!(!board.is_in_same_set(center_index, neighbor_index));
+        assert!(!board.is_in_same_set(center, neighbor));
     }
 
     #[test]
     fn test_do_not_merge_cells_that_are_not_connected() {
         let mut board = Board::new(3);
         let top_left = Coords { row: 0, column: 0 };
-        let top_left_index = board.cells.index_from_coords(top_left);
         let bottom_right = Coords { row: 2, column: 2 };
-        let bottom_right_index = board.cells.index_from_coords(bottom_right);
 
         board.play(top_left, Color::Black).unwrap();
         board.play(bottom_right, Color::Black).unwrap();
 
-        assert!(!board.is_in_same_set(top_left_index, bottom_right_index));
+        assert!(!board.is_in_same_set(top_left, bottom_right));
     }
 
     #[test]

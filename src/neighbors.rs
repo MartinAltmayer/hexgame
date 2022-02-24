@@ -1,3 +1,4 @@
+use crate::edges::Edge;
 use crate::hex_cells::{HexCells, Index};
 use std::iter;
 use std::iter::Iterator;
@@ -5,13 +6,13 @@ use std::iter::Iterator;
 pub fn get_neighbors(cells: &HexCells, index: Index) -> impl Iterator<Item = Index> {
     let size = cells.size as Index;
     let left_neighbor = if index % size == 0 {
-        cells.left()
+        cells.index_from_edge(Edge::Left)
     } else {
         index - 1
     };
 
     let top_left_neighbor = if index < size {
-        cells.top()
+        cells.index_from_edge(Edge::Top)
     } else {
         index - size
     };
@@ -23,13 +24,13 @@ pub fn get_neighbors(cells: &HexCells, index: Index) -> impl Iterator<Item = Ind
     };
 
     let right_neighbor = if index % size == size - 1 {
-        cells.right()
+        cells.index_from_edge(Edge::Right)
     } else {
         index + 1
     };
 
     let bottom_right_neighbor = if index >= size * (size - 1) {
-        cells.bottom()
+        cells.index_from_edge(Edge::Bottom)
     } else {
         index + size
     };
@@ -51,14 +52,23 @@ pub fn get_neighbors(cells: &HexCells, index: Index) -> impl Iterator<Item = Ind
 
 #[cfg(test)]
 mod tests {
-    use crate::{CoordValue, Coords};
+    use crate::{edges::CoordsOrEdge, CoordValue, Coords};
 
     use super::*;
 
-    fn check_neighbors(cells: &HexCells, row: CoordValue, column: CoordValue, expected: &[Index]) {
+    fn check_neighbors(
+        cells: &HexCells,
+        row: CoordValue,
+        column: CoordValue,
+        expected: &[CoordsOrEdge],
+    ) {
         let index = cells.index_from_coords(Coords { row, column });
+        let expected_indexes: Vec<Index> = expected
+            .iter()
+            .map(|&x| cells.index_from_coords_or_edge(x))
+            .collect();
         let neighbors: Vec<Index> = get_neighbors(cells, index).collect();
-        assert_eq!(neighbors, expected);
+        assert_eq!(neighbors, expected_indexes);
     }
 
     #[test]
@@ -66,26 +76,26 @@ mod tests {
         let cells = HexCells::new(5);
         #[rustfmt::skip]
         check_neighbors(&cells, 0, 0, &[
-            cells.left(),
-            cells.top(),
-            cells.index_from_coords(Coords::new(0, 1)),
-            cells.index_from_coords(Coords::new(1, 0)),
+            Edge::Left.into(),
+            Edge::Top.into(),
+            Coords::new(0, 1).into(),
+            Coords::new(1, 0).into(),
         ]);
         #[rustfmt::skip]
         check_neighbors(&cells, 0, 1, &[
-            cells.index_from_coords(Coords::new(0, 0)),
-            cells.top(),
-            cells.index_from_coords(Coords::new(0, 2)),
-            cells.index_from_coords(Coords::new(1, 1)),
-            cells.index_from_coords(Coords::new(1, 0)),
+            Coords::new(0, 0).into(),
+            Edge::Top.into(),
+            Coords::new(0, 2).into(),
+            Coords::new(1, 1).into(),
+            Coords::new(1, 0).into(),
         ]);
         #[rustfmt::skip]
         check_neighbors(&cells, 1, 0, &[
-            cells.left(),
-            cells.index_from_coords(Coords::new(0, 0)),
-            cells.index_from_coords(Coords::new(0, 1)),
-            cells.index_from_coords(Coords::new(1, 1)),
-            cells.index_from_coords(Coords::new(2, 0)),
+            Edge::Left.into(),
+            Coords::new(0, 0).into(),
+            Coords::new(0, 1).into(),
+            Coords::new(1, 1).into(),
+            Coords::new(2, 0).into(),
         ]);
     }
 
@@ -94,27 +104,27 @@ mod tests {
         let cells = HexCells::new(5);
         #[rustfmt::skip]
         check_neighbors(&cells, 0, 4, &[
-            cells.index_from_coords(Coords::new(0, 3)),
-            cells.top(),
-            cells.right(),
-            cells.index_from_coords(Coords::new(1, 4)),
-            cells.index_from_coords(Coords::new(1, 3)),
+            Coords::new(0, 3).into(),
+            Edge::Top.into(),
+            Edge::Right.into(),
+            Coords::new(1, 4).into(),
+            Coords::new(1, 3).into(),
         ]);
         #[rustfmt::skip]
         check_neighbors(&cells, 0, 3, &[
-            cells.index_from_coords(Coords::new(0, 2)),
-            cells.top(),
-            cells.index_from_coords(Coords::new(0, 4)),
-            cells.index_from_coords(Coords::new(1, 3)),
-            cells.index_from_coords(Coords::new(1, 2)),
+            Coords::new(0, 2).into(),
+            Edge::Top.into(),
+            Coords::new(0, 4).into(),
+            Coords::new(1, 3).into(),
+            Coords::new(1, 2).into(),
         ]);
         #[rustfmt::skip]
         check_neighbors(&cells, 1, 4, &[
-            cells.index_from_coords(Coords::new(1, 3)),
-            cells.index_from_coords(Coords::new(0, 4)),
-            cells.right(),
-            cells.index_from_coords(Coords::new(2, 4)),
-            cells.index_from_coords(Coords::new(2, 3)),
+            Coords::new(1, 3).into(),
+            Coords::new(0, 4).into(),
+            Edge::Right.into(),
+            Coords::new(2, 4).into(),
+            Coords::new(2, 3).into(),
         ]);
     }
 
@@ -123,27 +133,27 @@ mod tests {
         let cells = HexCells::new(5);
         #[rustfmt::skip]
         check_neighbors(&cells, 4, 0, &[
-            cells.left(),
-            cells.index_from_coords(Coords::new(3, 0)),
-            cells.index_from_coords(Coords::new(3, 1)),
-            cells.index_from_coords(Coords::new(4, 1)),
-            cells.bottom(),
+            Edge::Left.into(),
+            Coords::new(3, 0).into(),
+            Coords::new(3, 1).into(),
+            Coords::new(4, 1).into(),
+            Edge::Bottom.into(),
         ]);
         #[rustfmt::skip]
         check_neighbors(&cells, 3, 0, &[
-            cells.left(),
-            cells.index_from_coords(Coords::new(2, 0)),
-            cells.index_from_coords(Coords::new(2, 1)),
-            cells.index_from_coords(Coords::new(3, 1)),
-            cells.index_from_coords(Coords::new(4, 0)),
+            Edge::Left.into(),
+            Coords::new(2, 0).into(),
+            Coords::new(2, 1).into(),
+            Coords::new(3, 1).into(),
+            Coords::new(4, 0).into(),
         ]);
         #[rustfmt::skip]
         check_neighbors(&cells, 4, 1, &[
-            cells.index_from_coords(Coords::new(4, 0)),
-            cells.index_from_coords(Coords::new(3, 1)),
-            cells.index_from_coords(Coords::new(3, 2)),
-            cells.index_from_coords(Coords::new(4, 2)),
-            cells.bottom(),
+            Coords::new(4, 0).into(),
+            Coords::new(3, 1).into(),
+            Coords::new(3, 2).into(),
+            Coords::new(4, 2).into(),
+            Edge::Bottom.into(),
         ]);
     }
 
@@ -152,26 +162,26 @@ mod tests {
         let cells = HexCells::new(5);
         #[rustfmt::skip]
         check_neighbors(&cells, 4, 4, &[
-            cells.index_from_coords(Coords::new(4, 3)),
-            cells.index_from_coords(Coords::new(3, 4)),
-            cells.right(),
-            cells.bottom(),
+            Coords::new(4, 3).into(),
+            Coords::new(3, 4).into(),
+            Edge::Right.into(),
+            Edge::Bottom.into(),
         ]);
         #[rustfmt::skip]
         check_neighbors(&cells, 3, 4, &[
-            cells.index_from_coords(Coords::new(3, 3)),
-            cells.index_from_coords(Coords::new(2, 4)),
-            cells.right(),
-            cells.index_from_coords(Coords::new(4, 4)),
-            cells.index_from_coords(Coords::new(4, 3)),
+            Coords::new(3, 3).into(),
+            Coords::new(2, 4).into(),
+            Edge::Right.into(),
+            Coords::new(4, 4).into(),
+            Coords::new(4, 3).into(),
         ]);
         #[rustfmt::skip]
         check_neighbors(&cells, 4, 3, &[
-            cells.index_from_coords(Coords::new(4, 2)),
-            cells.index_from_coords(Coords::new(3, 3)),
-            cells.index_from_coords(Coords::new(3, 4)),
-            cells.index_from_coords(Coords::new(4, 4)),
-            cells.bottom(),
+            Coords::new(4, 2).into(),
+            Coords::new(3, 3).into(),
+            Coords::new(3, 4).into(),
+            Coords::new(4, 4).into(),
+            Edge::Bottom.into(),
         ]);
     }
 
@@ -180,12 +190,12 @@ mod tests {
         let cells = HexCells::new(5);
         #[rustfmt::skip]
         check_neighbors(&cells, 2, 2, &[
-            cells.index_from_coords(Coords::new(2, 1)),
-            cells.index_from_coords(Coords::new(1, 2)),
-            cells.index_from_coords(Coords::new(1, 3)),
-            cells.index_from_coords(Coords::new(2, 3)),
-            cells.index_from_coords(Coords::new(3, 2)),
-            cells.index_from_coords(Coords::new(3, 1)),
+            Coords::new(2, 1).into(),
+            Coords::new(1, 2).into(),
+            Coords::new(1, 3).into(),
+            Coords::new(2, 3).into(),
+            Coords::new(3, 2).into(),
+            Coords::new(3, 1).into(),
         ]);
     }
 }

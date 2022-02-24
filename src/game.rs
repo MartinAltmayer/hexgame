@@ -1,6 +1,7 @@
 use crate::board::{Board, StoneMatrix};
 use crate::color::Color;
 use crate::coords::{CoordValue, Coords};
+use crate::edges::get_edges_of_color;
 use crate::errors::{InvalidBoard, InvalidMove};
 
 /// Status of a game.
@@ -96,7 +97,7 @@ impl Game {
     }
 
     fn is_finished_after_player(board: &Board, current_player: Color) -> bool {
-        let edges = board.get_edges(current_player);
+        let edges = get_edges_of_color(current_player);
         board.is_in_same_set(edges[0], edges[1])
     }
 }

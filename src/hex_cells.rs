@@ -2,14 +2,13 @@ use std::cell::Cell;
 
 use crate::color::Color;
 use crate::coords::{CoordValue, Coords};
+use crate::edges::{CoordsOrEdge, Edge};
 use crate::union_find::UnionFind;
 
-/// This type can be used to refer to a cell (like `Coords`) or to an edge (top/left/right/bottom).
-///
-/// The `Index` values for a given cell or edge depend on the memory layout used by `hexgame` and are not guaranteed to remain stable.
-/// For this reason `Index` values should be treated as opaque.
-///
-/// TODO: Do we need to expose the `Index` type?
+/// This type is used internally to index into `HexCells`.
+/// It can refer to a cell (like `Coords`) or to an edge (like `Edge`).
+/// Both `HexCells` and `Index` are considered internal types and not exposed.
+/// Typically, we convert to one of `Coords`, `Edge`, or `CoordsOrEdge` instead of exposing an index.
 pub type Index = u16;
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -48,7 +47,7 @@ impl HexCells {
 
     pub fn coords_from_index(&self, index: Index) -> Coords {
         let size = self.size as Index;
-        if index >= self.left() {
+        if index >= self.index_from_edge(Edge::Left) {
             panic!("Index {} cannot be converted to Coords", index);
         }
         Coords {
@@ -57,23 +56,24 @@ impl HexCells {
         }
     }
 
-    pub fn left(&self) -> Index {
-        let size = self.size as Index;
-        size * size
+    pub fn index_from_edge(&self, edge: Edge) -> Index {
+        let start = (self.size as Index) * (self.size as Index);
+        match edge {
+            Edge::Left => start,
+            Edge::Top => start + 1,
+            Edge::Right => start + 2,
+            Edge::Bottom => start + 3,
+        }
     }
 
-    pub fn top(&self) -> Index {
-        self.left() + 1
+    pub fn index_from_coords_or_edge(&self, coords_or_edge: CoordsOrEdge) -> Index {
+        match coords_or_edge {
+            CoordsOrEdge::Coords(coords) => self.index_from_coords(coords),
+            CoordsOrEdge::Edge(edge) => self.index_from_edge(edge),
+        }
     }
 
-    pub fn right(&self) -> Index {
-        self.left() + 2
-    }
-
-    pub fn bottom(&self) -> Index {
-        self.left() + 3
-    }
-
+    #[allow(dead_code)]
     pub fn get_color_at_coords(&self, coords: Coords) -> Option<Color> {
         self.get_color_at_index(self.index_from_coords(coords))
     }

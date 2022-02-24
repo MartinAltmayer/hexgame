@@ -1,4 +1,6 @@
-use crate::{hex_cells::HexCells, neighbors::get_neighbors, Coords, Index};
+use crate::coords::Coords;
+use crate::hex_cells::{HexCells, Index};
+use crate::neighbors::get_neighbors;
 
 enum FindAttackedBridgesState {
     Found0,
@@ -80,19 +82,14 @@ fn copy_into_array<T, TIter: Iterator<Item = T>, const N: usize>(
 
 #[cfg(test)]
 mod tests {
-    use crate::Color;
+    use crate::{edges::set_edge_colors, Color};
 
     use super::*;
     const CENTER: Coords = Coords { row: 2, column: 2 };
 
     fn empty_cells_with_colored_edges() -> HexCells {
         let mut cells = HexCells::new(5);
-
-        cells.set_color_at_index(cells.top(), Color::Black);
-        cells.set_color_at_index(cells.left(), Color::White);
-        cells.set_color_at_index(cells.bottom(), Color::Black);
-        cells.set_color_at_index(cells.right(), Color::White);
-
+        set_edge_colors(&mut cells);
         cells
     }
 
