@@ -169,7 +169,44 @@ impl Board {
         result
     }
 
-    // TODO: Write docs
+    /// Return all bridges that are attacked by a given stone.
+    ///
+    /// A bridge is the most common virtual connection pattern in Hex.
+    /// In the following example, White cannot prevent Black from connecting their stones:
+    /// If White places a stone between the black stones, Black may just choose the other cell between the black stones.
+    /// ```text
+    ///  a  b  c
+    /// 1\.  .  .\1
+    ///  2\.  .  ●\2
+    ///   3\●  .  .\3
+    ///      a  b  c
+    /// ```
+    ///
+    /// This method assumes that one player has just played on `coords`.
+    /// It computes all bridges of the other player that are being attacked by this move.
+    /// For each attacked bridge, the free cell in the middle is returned.
+    /// If the attacked player places a stone on this cell, the bridge will be fully connected despite the attack.
+    ///
+    /// This method will also return bridges that connect a stone to one of the player's own edges (see the example below).
+    ///
+    /// The color at `coords` determines the attacking player
+    /// (if the cell at `coords` is empty, this method returns an empty list.)
+    ///
+    /// Example:
+    /// ```text
+    ///  a  b  c
+    /// 1\.  .  .\1
+    ///  2\.  .  ●\2
+    ///   3\●  ○  .\3
+    ///      a  b  c
+    /// ```
+    ///
+    /// The attacked bridges on this board and coords=b3 are:
+    ///
+    /// - a3 - b2 - c2
+    /// - c2 - c3 - bottom edge
+    ///
+    /// Thus, this method would return the middle cells [b2, c3].
     pub fn find_attacked_bridges(&self, coords: Coords) -> Vec<Coords> {
         find_attacked_bridges(&self.cells, coords)
     }
