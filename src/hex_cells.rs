@@ -17,6 +17,8 @@ struct HexCell {
     parent: Cell<Option<Index>>,
 }
 
+const EDGES: [Edge; 4] = [Edge::Left, Edge::Top, Edge::Right, Edge::Bottom];
+
 #[derive(Clone)]
 pub struct HexCells {
     pub size: CoordValue,
@@ -45,14 +47,25 @@ impl HexCells {
         (row as Index) * (self.size as Index) + (column as Index)
     }
 
-    pub fn coords_from_index(&self, index: Index) -> Coords {
+    pub fn decode_index(&self, index: Index) -> CoordsOrEdge {
         let size = self.size as Index;
-        if index >= self.index_from_edge(Edge::Left) {
-            panic!("Index {} cannot be converted to Coords", index);
+        let first_edge_index = self.index_from_edge(EDGES[0]);
+
+        if index < first_edge_index {
+            Coords {
+                row: (index / size) as CoordValue,
+                column: (index % size) as CoordValue,
+            }
+            .into()
+        } else {
+            EDGES[(index - first_edge_index) as usize].into()
         }
-        Coords {
-            row: (index / size) as CoordValue,
-            column: (index % size) as CoordValue,
+    }
+
+    pub fn coords_from_index(&self, index: Index) -> Coords {
+        match self.decode_index(index) {
+            CoordsOrEdge::Coords(coords) => coords,
+            _ => panic!("Index {} cannot be converted to Coords", index),
         }
     }
 
@@ -125,6 +138,26 @@ mod tests {
     fn test_index_from_coords() {
         let cells = HexCells::new(3);
         assert_eq!(cells.index_from_coords(Coords::new(1, 2)), 5);
+    }
+
+    #[test]
+    fn test_index_from_edge() {
+        let cells = HexCells::new(3);
+        assert_eq!(cells.index_from_edge(EDGES[0]), 9);
+        assert_eq!(cells.index_from_edge(EDGES[1]), 10);
+        assert_eq!(cells.index_from_edge(EDGES[2]), 11);
+        assert_eq!(cells.index_from_edge(EDGES[3]), 12);
+    }
+
+    #[test]
+    fn test_decode_index() {
+        let cells = HexCells::new(3);
+        assert_eq!(
+            cells.decode_index(0),
+            CoordsOrEdge::Coords(Coords::new(0, 0))
+        );
+        assert_eq!(cells.decode_index(9), CoordsOrEdge::Edge(EDGES[0]));
+        assert_eq!(cells.decode_index(12), CoordsOrEdge::Edge(EDGES[3]));
     }
 
     #[test]

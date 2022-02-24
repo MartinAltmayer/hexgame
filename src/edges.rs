@@ -3,7 +3,7 @@ use crate::{hex_cells::HexCells, Color, Coords};
 /// Represents the four edges of the board.
 ///
 /// The top and bottom edge belong to player `Black`, the other two edges belong to player `White`.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Edge {
     Left,
     Top,
@@ -20,7 +20,7 @@ pub fn get_edges_of_color(color: Color) -> [Edge; 2] {
 
 /// Represents either a cell of the board or an edge.
 /// This type is used in a few places that may return both coords and edges (e.g. get_neighbors).
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CoordsOrEdge {
     Coords(Coords),
     Edge(Edge),
