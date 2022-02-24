@@ -5,6 +5,7 @@ mod errors;
 mod format;
 mod game;
 mod hex_cells;
+mod neighbors;
 mod serialize;
 mod union_find;
 
