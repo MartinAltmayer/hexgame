@@ -169,6 +169,28 @@ impl Board {
         result
     }
 
+    /// Return all neighbors of the given cell.
+    ///
+    /// Note that this includes edges.
+    ///
+    /// Example:
+    /// ```
+    /// # use hexgame::{Board, Edge, Coords, CoordsOrEdge};
+    /// let board = Board::new(3);
+    /// let neighbors: Vec<CoordsOrEdge> = board.get_neighbors(Coords::new(2, 0)).collect();
+    /// assert_eq!(neighbors, vec![
+    ///     CoordsOrEdge::Edge(Edge::Left),
+    ///     CoordsOrEdge::Coords(Coords::new(1, 0)),
+    ///     CoordsOrEdge::Coords(Coords::new(1, 1)),
+    ///     CoordsOrEdge::Coords(Coords::new(2, 1)),
+    ///     CoordsOrEdge::Edge(Edge::Bottom),
+    /// ]);
+    /// ```
+    pub fn get_neighbors(&'_ self, coords: Coords) -> impl Iterator<Item = CoordsOrEdge> + '_ {
+        let index = self.cells.index_from_coords(coords);
+        get_neighbors(&self.cells, index).map(|index| self.cells.decode_index(index))
+    }
+
     /// Return all bridges that are attacked by a given stone.
     ///
     /// A bridge is the most common virtual connection pattern in Hex.
@@ -399,6 +421,23 @@ mod tests {
         assert_eq!(
             board.get_empty_cells(),
             vec![Coords { row: 0, column: 1 }, Coords { row: 1, column: 0 },]
+        );
+    }
+
+    #[test]
+    fn test_get_neighbors() {
+        let board = Board::new(3);
+        let neighbors: Vec<CoordsOrEdge> = board.get_neighbors(Coords::new(2, 0)).collect();
+
+        assert_eq!(
+            neighbors,
+            vec![
+                Edge::Left.into(),
+                Coords::new(1, 0).into(),
+                Coords::new(1, 1).into(),
+                Coords::new(2, 1).into(),
+                Edge::Bottom.into(),
+            ]
         );
     }
 }
