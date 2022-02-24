@@ -82,6 +82,11 @@ impl HexCells {
         self.vector[index as usize].color
     }
 
+    #[allow(dead_code)]
+    pub fn set_color_at_coords(&mut self, coords: Coords, color: Color) {
+        self.set_color_at_index(self.index_from_coords(coords), color)
+    }
+
     pub fn set_color_at_index(&mut self, index: Index, color: Color) {
         self.vector[index as usize].color = Some(color);
     }

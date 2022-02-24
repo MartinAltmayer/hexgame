@@ -1,3 +1,4 @@
+mod attacked_bridges;
 mod board;
 mod color;
 mod coords;
