@@ -169,20 +169,26 @@ impl Board {
         result
     }
 
-    /// Return all neighbors of the given cell.
-    ///
-    /// Note that this includes edges.
+    /// Return all neighbors of the given cell, including edges that border the cell.
     ///
     /// Example:
+    /// ```text
+    ///  a  b  c
+    /// 1\.  .  .\1
+    ///  2\.  .  .\2
+    ///   3\●  .  .\3
+    ///      a  b  c
+    /// ```
+    /// Let's compute the neighbors of the stone in the bottom left corner.
     /// ```
     /// # use hexgame::{Board, Edge, Coords, CoordsOrEdge};
     /// let board = Board::new(3);
     /// let neighbors: Vec<CoordsOrEdge> = board.get_neighbors(Coords::new(2, 0)).collect();
     /// assert_eq!(neighbors, vec![
     ///     CoordsOrEdge::Edge(Edge::Left),
-    ///     CoordsOrEdge::Coords(Coords::new(1, 0)),
-    ///     CoordsOrEdge::Coords(Coords::new(1, 1)),
-    ///     CoordsOrEdge::Coords(Coords::new(2, 1)),
+    ///     CoordsOrEdge::Coords("a2".parse().unwrap()),
+    ///     CoordsOrEdge::Coords("b2".parse().unwrap()),
+    ///     CoordsOrEdge::Coords("b3".parse().unwrap()),
     ///     CoordsOrEdge::Edge(Edge::Bottom),
     /// ]);
     /// ```
