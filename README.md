@@ -18,7 +18,7 @@ White needs to connect left and right edges. The first player to connect their e
 
 Example:
 
-In the following example, Black has won the game after connecting the top edge to the bottom edge.
+In the following example, Black (●) has won the game after connecting the top edge to the bottom edge.
 ```
  a  b  c  d  e
 1\.  .  .  ○  ●\1

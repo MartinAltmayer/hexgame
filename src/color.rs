@@ -1,4 +1,7 @@
-/// This enum represents the two players. The first player is always `Black`
+/// This enum represents the two players. The first player is always `Black`.
+///
+/// When displaying boards we use the symbol ● for Black and ○ for White.
+/// Note that when using a dark theme, apparent colors might be reversed.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
 pub enum Color {
     /// Needs to connect top to bottom. Always starts the game.
