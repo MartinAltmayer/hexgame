@@ -2,8 +2,11 @@
 name = "hexgame"
 version = "0.1.0"
 edition = "2021"
+authors = ["Martin Altmayer"]
+license = "GPL-3.0-or-later"
+description = "Simple and performant implementation of the Hex board game"
+repository = "https://github.com/MartinAltmayer/hexgame"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 serde = {version = "^1.0.117", features = ["derive"] }
