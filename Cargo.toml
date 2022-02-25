@@ -6,7 +6,7 @@ authors = ["Martin Altmayer"]
 license = "GPL-3.0-or-later"
 description = "Simple and performant implementation of the Hex board game"
 repository = "https://github.com/MartinAltmayer/hexgame"
-
+categories = ["games"]
 
 [dependencies]
 serde = {version = "^1.0.117", features = ["derive"] }
