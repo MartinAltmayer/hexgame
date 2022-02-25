@@ -7,8 +7,8 @@ use crate::errors::{InvalidBoard, InvalidMove};
 /// Status of a game.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Status {
-    /// Game has not yet ended.
-    Ongoing,
+    /// Game has not yet ended. The `Color` indicates which player is to make the next turn.
+    Ongoing(Color),
     /// Game has been finished. The `Color` indicates which player has won the game.
     /// Note that a game of Hex never ends in a draw.
     Finished(Color),
@@ -20,7 +20,6 @@ pub enum Status {
 #[derive(Clone)]
 pub struct Game {
     board: Board,
-    current_player: Color,
     status: Status,
 }
 
@@ -33,8 +32,7 @@ impl Game {
     pub fn new(size: CoordValue) -> Game {
         Game {
             board: Board::new(size),
-            current_player: Color::Black,
-            status: Status::Ongoing,
+            status: Status::Ongoing(Color::Black),
         }
     }
 
@@ -43,10 +41,12 @@ impl Game {
         &self.board
     }
 
-    /// Return the current player. If the game has ended, this method will return some player, but behavior is undefined.
-    /// TODO: return Option<Color> to tidy this up
-    pub fn get_current_player(&self) -> Color {
-        self.current_player
+    /// Return the current player, or None if the game has ended.
+    pub fn get_current_player(&self) -> Option<Color> {
+        match self.status {
+            Status::Ongoing(color) => Some(color),
+            Status::Finished(_) => None,
+        }
     }
 
     // Get the game's status.
@@ -54,46 +54,52 @@ impl Game {
         self.status
     }
 
-    /// Load a game from a `StoneMatrix`.
+    /// Load a game from a `StoneMatrix` and a current player color.
+    ///
+    /// This method returns an error if `current_player` is None, but the game has not yet finished.
+    /// Conversely, if the game has finished, `current_player` will be ignored.
     ///
     /// Please also have a look at the `Serialization` trait which allows to directly deserialize a game from JSON.
-    /// TODO: can we restrict the visibility of this method to the crate? There is no analogous "save" method.
-    pub fn load(stones: StoneMatrix, current_player: Color) -> Result<Self, InvalidBoard> {
+    pub fn load(stones: StoneMatrix, current_player: Option<Color>) -> Result<Self, InvalidBoard> {
         let mut board = Board::from_stone_matrix(stones)?;
-        let status = Self::compute_status(&mut board);
-        Ok(Self {
-            board,
-            current_player,
-            status,
-        })
+        let status = Self::compute_status(&mut board, current_player)?;
+        Ok(Self { board, status })
     }
 
     /// Let the current player place a stone at the given coordinates.
     /// If the move is invalid, this method returns an error.
     /// This method will automatically update the current player.
     pub fn play(&mut self, coords: Coords) -> Result<(), InvalidMove> {
-        if let Status::Finished(_) = self.status {
-            return Err(InvalidMove::GameOver);
+        match self.status {
+            Status::Ongoing(current_player) => {
+                self.board.play(coords, current_player)?;
+
+                if Self::is_finished_after_player(&self.board, current_player) {
+                    self.status = Status::Finished(current_player);
+                } else {
+                    self.status = Status::Ongoing(current_player.opponent_color());
+                }
+
+                Ok(())
+            }
+            Status::Finished(_) => Err(InvalidMove::GameOver),
         }
-
-        self.board.play(coords, self.current_player)?;
-
-        if Self::is_finished_after_player(&self.board, self.current_player) {
-            self.status = Status::Finished(self.current_player);
-        } else {
-            self.current_player = self.current_player.opponent_color();
-        }
-
-        Ok(())
     }
 
-    fn compute_status(board: &mut Board) -> Status {
+    fn compute_status(
+        board: &mut Board,
+        current_player: Option<Color>,
+    ) -> Result<Status, InvalidBoard> {
         if Self::is_finished_after_player(board, Color::Black) {
-            return Status::Finished(Color::Black);
+            return Ok(Status::Finished(Color::Black));
         } else if Self::is_finished_after_player(board, Color::White) {
-            return Status::Finished(Color::White);
+            return Ok(Status::Finished(Color::White));
         }
-        Status::Ongoing
+
+        match current_player {
+            Some(color) => Ok(Status::Ongoing(color)),
+            None => Err(InvalidBoard::NoCurrentPlayer),
+        }
     }
 
     fn is_finished_after_player(board: &Board, current_player: Color) -> bool {
@@ -115,8 +121,7 @@ mod test {
         game.play(coord2).ok();
         assert_eq!(game.board.get_color(coord1).unwrap(), Color::Black);
         assert_eq!(game.board.get_color(coord2).unwrap(), Color::White);
-        assert_eq!(game.current_player, Color::Black);
-        assert_eq!(game.status, Status::Ongoing);
+        assert_eq!(game.status, Status::Ongoing(Color::Black));
     }
 
     #[test]
@@ -165,11 +170,21 @@ mod test {
             vec![None, Some(Color::Black)],
             vec![Some(Color::White), None],
         ];
-        let game = Game::load(stone_matrix, current_player).unwrap();
+        let game = Game::load(stone_matrix, Some(current_player)).unwrap();
 
         assert_eq!(game.board.get_color(Coords::new(1, 0)), Some(Color::White));
-        assert_eq!(game.current_player, current_player);
-        assert_eq!(game.status, Status::Ongoing);
+        assert_eq!(game.status, Status::Ongoing(current_player));
+    }
+
+    #[test]
+    fn test_load_game_without_current_player() {
+        let stone_matrix = vec![
+            vec![None, Some(Color::Black)],
+            vec![Some(Color::White), None],
+        ];
+        let result = Game::load(stone_matrix, None);
+
+        assert_eq!(result.err().unwrap(), InvalidBoard::NoCurrentPlayer);
     }
 
     #[test]
@@ -179,9 +194,9 @@ mod test {
             vec![Some(Color::Black), Some(Color::White)],
             vec![Some(Color::White), Some(Color::Black)],
         ];
-        let game = Game::load(stone_matrix, current_player).unwrap();
+        let game = Game::load(stone_matrix, Some(current_player)).unwrap();
 
-        assert_eq!(game.current_player, current_player);
         assert_eq!(game.status, Status::Finished(Color::White));
+        assert_eq!(game.get_current_player(), None);
     }
 }

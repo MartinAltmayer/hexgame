@@ -21,8 +21,9 @@ fn main() {
 
     loop {
         match game.get_status() {
-            Status::Ongoing => {
-                let result = request_coords(&game).and_then(|coords| play(&mut game, coords));
+            Status::Ongoing(current_player) => {
+                let result = request_coords(&game, current_player)
+                    .and_then(|coords| play(&mut game, coords));
 
                 match result {
                     Ok(_) => {
@@ -71,8 +72,8 @@ fn check_size(size: CoordValue) -> std::io::Result<CoordValue> {
     }
 }
 
-fn request_coords(game: &Game) -> Result<Coords, io::Error> {
-    let player = match game.get_current_player() {
+fn request_coords(game: &Game, current_player: Color) -> Result<Coords, io::Error> {
+    let player = match current_player {
         Color::Black => "BLACK",
         Color::White => "WHITE",
     };

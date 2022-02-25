@@ -38,7 +38,7 @@ impl Serialization for Game {
         let stored_game = StoredGame {
             version: VERSION,
             size: self.get_board().size(),
-            current_player: serialize_color(&Some(self.get_current_player())),
+            current_player: serialize_color(&self.get_current_player()),
             stones: store_stone_matrix(&self.get_board().to_stone_matrix()),
         };
 
@@ -56,10 +56,7 @@ impl Serialization for Game {
         }
 
         let stones = load_stone_matrix(&stored_game.stones)?;
-        let current_player =
-            deserialize_color(&stored_game.current_player).and_then(|maybe_color| {
-                maybe_color.ok_or_else(|| invalid_data("Current player is 0"))
-            })?;
+        let current_player = deserialize_color(&stored_game.current_player)?;
 
         Game::load(stones, current_player).map_err(invalid_data)
     }
@@ -141,7 +138,7 @@ mod tests {
         let game = Game::load_from_json(data).unwrap();
 
         assert_eq!(game.get_board().size(), 2);
-        assert_eq!(game.get_current_player(), Color::Black);
+        assert_eq!(game.get_current_player(), Some(Color::Black));
         assert_eq!(
             game.get_board().get_color(Coords { row: 0, column: 0 }),
             None
@@ -181,11 +178,11 @@ mod tests {
 
         let game = Game::load_from_json(data).unwrap();
 
-        assert_eq!(game.get_current_player(), Color::White);
+        assert_eq!(game.get_current_player(), Some(Color::White));
     }
 
     #[test]
-    fn test_deserialize_invalid_current_player() {
+    fn test_deserialize_without_current_player() {
         let data = json!({
             "version": VERSION,
             "size": 2,
