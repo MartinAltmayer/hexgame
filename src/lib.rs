@@ -15,8 +15,6 @@ The rules of Hex are very simple: Hex is played by two players (Black and White)
 Starting with Black, the players take turns to place stones of their color on an empty space. The task of Black is to connect the top and bottom edges.
 White needs to connect left and right edges. The first player to connect their edges wins the game.
 
-Example:
-
 In the following example, Black (●) has won the game after connecting the top edge to the bottom edge.
 ```text
  a  b  c  d  e
@@ -41,8 +39,11 @@ This library does not yet implement the swap rule, mostly because it was not nec
 The most important struct is `Game`. To play the game, you also need `Coords`. The game keeps track of the current player automatically.
 ```
 use hexgame::{Coords, Game};
+
 let mut game = Game::new(19); // size of the board
+
 game.play(Coords::new(3, 5));  // (row, column) and zero-based, i.e. f4
+
 // Or use human-readable coordinates
 game.play("d5".parse().unwrap());
 ```
@@ -65,8 +66,7 @@ cargo run
 Then type the coordinates of the space where you would like to place your next stone, e.g. "c2" and press Enter.
 
 Optionally, you can specify the size of the board like in `cargo run 7`.
-
-!*/
+*/
 mod attacked_bridges;
 mod board;
 mod color;
